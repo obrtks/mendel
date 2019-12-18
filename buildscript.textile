@@ -1,0 +1,193 @@
+Describes the build script for building the latest release (release-day) of Mendel Linux.
+
+* Refs
+** "https://coral.googlesource.com/":https://coral.googlesource.com/
+** "https://coral.googlesource.com/docs/+/refs/heads/release-day/ReadMe.md":https://coral.googlesource.com/docs/+/refs/heads/release-day/ReadMe.md
+
+h3. Files of "build":https://coral.googlesource.com/build/+/refs/heads/release-day
+
+* setup.sh
+** When the m command is executed, following make is executed.
+<code>
+make -f "${ROOTDIR}/build/Makefile" "$@"
+</code>
+
+* preamble.mk
+** macro definition commonly used in every make files.
+
+* Makefile
+** Include the main build target "all: rootfs bootloader partition-table".
+** "all" is performed when the "m" command is executed.
+** A list of available commands is shown when "m targets" is executed,
+*** Those contents are also isted in "targets::" of each makefile.
+<code>
+$ m targets
+boot - builds the kernel and boot partition
+partition-table - builds partition table images for all eMMC sizes
+img2simg - builds the sparse image conversion tool
+simg2img - builds the unsparse image conversion tool
+busybox - embedded swiss-army knife
+prereqs    - installs packages required by this Makefile
+rootfs - runs multistrap to build the rootfs tree
+sdcard     - generate a flashable sdcard image
+flashcard - SD Card image to flash eMMC
+recovery     - generate a flashable recovery image
+</code>
+
+* docker.mk
+** Create aiy-board-builder.tar by "docker build".
+** "docker-all" is the starting point of the mendel linux's build (With .DEFAULT_GOAL),
+*** When the target of make becomes docker-all, launch "docker load" command with passing "all" target to Makefile.
+
+* Dockerfile
+** Definition information when creating "aiy-board-builder.tar".
+
+* prereqs.mk
+** "apt-get" the .deb packages to the build host. Performed in the docker environment.
+** (The script can also be used by the host to install the packages for host to perform the build directory)
+
+* packages.mk
+** Create "cross-base.tar.gz" and "native-base.tar.gz" by "pbuilder create".
+** Create various .deb files.
+
+* rootfs.mk
+** Create "rootfs_arm64.img".
+
+* multistrap.mk
+** Create ubuntu destribution by multistrap command.
+
+* log.sh
+** script to leave logs in "out/buildtab"
+
+* watch.sh
+** Used to check the build progress from other consoles while building with m.
+** Checks "out/buildtab".
+
+----
+
+* 99network-settings
+** apt configuration file. Used in docker image or rootfs.
+
+* bazel-release.pub.gpg
+** It is used to install jdk1.8 from https://storage.googleapis.com/bazel-apt.
+
+* img2simg.mk
+** Build rules for "img2simg" in "tools/"
+
+* busybox.mk
+** build rules for "busybox" in "tools/"
+
+* fix_aarch64_binfmts.sh
+** As the name suggests
+
+* fix_permissions.sh
+** As the name suggests
+
+* multistrap-fix.patch
+** Bug fix for multistrap.
+
+* pbuilder-hooks/
+** pbuilder file
+
+* pbuilderrc
+** pbuilder file
+
+* permissions.txt
+** rootfs permission settings
+
+
+* generate_update_tarball.py
+* lintian
+* update_packages.sh
+
+----
+* vizdeps.py
+
+* checkout-release.sh
+** Script to pull/push aiy image. Seems unused for build.
+
+* compile_changelogs.py
+** script to create changelog in "package/"? (You don't need to use it unless you update the packages.)
+
+* create_release_manifest.py
+** This is like a mendel linux maintainer, so you don't need to use it.
+
+* mendel.list.template
+** Some template. It seems not to use it in particular.
+
+* template.mk
+** Template for adding build targets (e.g. linux-imx).
+
+h3. Files of "board":https://coral.googlesource.com/board-enterprise/+/refs/heads/release-day
+
+----
+* arch.mk
+** macro definitions
+*** BOOT = 128MB, ROOTFS = 4GB, enterprise
+
+* project.sh
+** macro definitions
+*** imx8m_phanbell, imx, enterprise
+
+* boot.mk
+** Create "boot_$(USERSPACE_ARCH).img"
+** Perform fallocate + mkfs.ext2 to fromat the image. 
+
+* multistrap.conf 
+** The template file for "multistrap" command.
+*** This template file is converted on the "out/" directory and used with "multistrap" command.
+
+* packages.mk 
+** Defines a list of various .deb files to build.
+** The .deb files are defined with "make-pbuilder-bsp-package-target" function.
+
+* bootloader.mk
+** Extract "u-boot.imx" and "mkimage" from .deb file.
+
+* fstab.emmc 
+** fstab definition for rootfs of emmc.
+
+* fstab.sdcard 
+** fstab definition for rootfs of sdcard.
+
+* partition-table.json
+** The template file of "partition-table.json".
+*** This template file is converted to json file to format 8GB, 16GB, 64GB partition table. 
+
+* partition-table.mk
+** Create partition-table.img from json file (partition-table.json).
+*** Creates 3 files of 8GB, 16GB, 64GB.
+
+----
+
+* sdcard.mk 
+** Create ./out/target/product/imx8m_phanbell/sdcard_arm64.img.
+*** Input files are as follows.
+<code>
+$(ROOTDIR)/board/fstab.sdcard
+$(PRODUCT_OUT)/u-boot.imx
+$(PRODUCT_OUT)/boot_$(USERSPACE_ARCH).img
+$(PRODUCT_OUT)/obj/ROOTFS/rootfs_$(USERSPACE_ARCH).patched.img
+</code>
+
+* make_sdcard.sh 
+** Copy fstab to sdcard image ($2 argument).
+
+* flashcard.mk
+** Create "flashcard_$(USERSPACE_ARCH).img", which is written to sdcard.
+** The created image is for processing to write data to emmc.
+*** busybox is used to perform the operation of writing emmc.
+** New addition in release-day.
+
+* recovery.mk 
+** Create "recovery.img" from "uboot-imx_3-2_arm64.deb"
+*** "recovery.img" is almostly same as "u-boot.imx".
+
+* flash.sh 
+** Write the data to dev board's emmc with "fastboot" command.
+
+----
+
+* jump_targets.sh 
+** Define the jump destination of the "j" command (e.g. "j kernel" or "j uboot").
+
