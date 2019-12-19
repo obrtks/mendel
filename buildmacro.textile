@@ -1,0 +1,72 @@
+* $(IS_EXTERNAL)
+** Defined in preamble.mk.
+** Indicate if the build is performed outside of google.
+** If this macro is false, following macros are defined.
+<code>
+  CACHED_BUILD_IMAGE_DIRECTORY ?= /google/data/ro/teams/spacepark/mendel/kokoro/prod
+  PREBUILT_DOCKER_ROOT ?= $(CACHED_BUILD_IMAGE_DIRECTORY)/docker/
+  FETCH_PBUILDER_DIRECTORY ?= $(CACHED_BUILD_IMAGE_DIRECTORY)/pbuilder/
+</code>
+** Quote from GettingStarted.md.
+<code>
+Currently the build system is configured to make use of Google's internal
+continuous build system to speed up the build. Unfortunately, these tools are
+not available publicly. This will likely change in the future, but for now,
+you'll want to disable the use of this functionality by setting the following
+environment variables:
+export IS_EXTERNAL=true
+</code>
+
+* $(HEADLESS_BUILD)
+** Not defined in any files.
+** If true, roofs does not include any display feature.
+** Following packages are not build and installed.
+<code>
+out/target/product/imx8m_phanbell/packages/core/mendel-gui_1-0_arm64.deb:
+Depends: gstreamer1.0-alsa, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-base, gstreamer1.0-plugins-base-apps, gstreamer1.0-plugins-good, gstreamer1.0-plugins-ugly, gstreamer1.0-tools, libdrm2, libgstreamer1.0-0, libgstreamer-plugins-bad1.0-0, libgstreamer-plugins-base1.0-0, mendel-core
+</code>
+
+* $(FETCH_PACKAGES)
+** Defined in preamble.mk
+** Default is "false".
+*** If false, .deb files are not build.
+**** build "$(ROOTDIR)/cache/packages.tgz"
+**** When creating rootfs, use "packages.tgz" as a install source of "apt-get".
+** Quote from "GettingStarted.md".
+<code>
+If you have not modified any packages, and would like to speed your install:
+FETCH_PACKAGES=true m
+</code>
+
+* ROOTFS_RAW_CACHE_DIRECTORY
+** Quote from "GettingStarted.md".
+<code>
+rootdir_ARCH.raw.img
+Base filesystem tarball made by multistrap. Set `ROOTFS_RAW_CACHE_DIRECTORY` in
+your environment to the folder containing a copy of the file to use an already
+built version.
+</code>
+
+* BOARD_NAME
+** Defined in preamble.mk
+** Default is "mendel"
+
+* $(USERSPACE_ARCH)
+** Defined in preamble.mk
+** In dev board, The value is "arm64".
+
+* $(ROOTDIR)
+** Defined in setup.sh
+
+* $(HAVE_QEMU)
+** Defined in Makefile
+
+* $(HAVE_FIXATED_QEMU)
+** Defined in Makefile
+
+* $(INTERACTIVE)
+** Defined in docker.mk
+
+* CACHED_BUILD_IMAGE_DIRECTORY
+* PREBUILT_DOCKER_ROOT
+* FETCH_PBUILDER_DIRECTORY
