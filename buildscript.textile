@@ -1,10 +1,14 @@
-Describes the build script for building the latest release (release-day) of Mendel Linux.
+Describes the build script for building the latest release (release-day) of Mendel Linux. The debian based OS for Coral (Google) Edge TPU dev board.
 
 * Refs
 ** "https://coral.googlesource.com/":https://coral.googlesource.com/
 ** "https://coral.googlesource.com/docs/+/refs/heads/release-day/ReadMe.md":https://coral.googlesource.com/docs/+/refs/heads/release-day/ReadMe.md
 
+h2. Files
+
 h3. Files of "build":https://coral.googlesource.com/build/+/refs/heads/release-day
+
+----
 
 * setup.sh
 ** When the m command is executed, following make is executed.
@@ -36,7 +40,7 @@ recovery     - generate a flashable recovery image
 
 * docker.mk
 ** Create aiy-board-builder.tar by "docker build".
-** "docker-all" is the starting point of the mendel linux's build (With .DEFAULT_GOAL),
+** "docker-all" is the starting point of the mendel linux's build (With .DEFAULT_GOAL).
 *** When the target of make becomes docker-all, launch "docker load" command with passing "all" target to Makefile.
 
 * Dockerfile
@@ -62,8 +66,6 @@ recovery     - generate a flashable recovery image
 * watch.sh
 ** Used to check the build progress from other consoles while building with m.
 ** Checks "out/buildtab".
-
-----
 
 * 99network-settings
 ** apt configuration file. Used in docker image or rootfs.
@@ -95,12 +97,10 @@ recovery     - generate a flashable recovery image
 * permissions.txt
 ** rootfs permission settings
 
-
 * generate_update_tarball.py
 * lintian
 * update_packages.sh
 
-----
 * vizdeps.py
 
 * checkout-release.sh
@@ -121,6 +121,7 @@ recovery     - generate a flashable recovery image
 h3. Files of "board":https://coral.googlesource.com/board-enterprise/+/refs/heads/release-day
 
 ----
+
 * arch.mk
 ** macro definitions
 *** BOOT = 128MB, ROOTFS = 4GB, enterprise
@@ -158,8 +159,6 @@ h3. Files of "board":https://coral.googlesource.com/board-enterprise/+/refs/head
 ** Create partition-table.img from json file (partition-table.json).
 *** Creates 3 files of 8GB, 16GB, 64GB.
 
-----
-
 * sdcard.mk 
 ** Create ./out/target/product/imx8m_phanbell/sdcard_arm64.img.
 *** Input files are as follows.
@@ -185,8 +184,6 @@ $(PRODUCT_OUT)/obj/ROOTFS/rootfs_$(USERSPACE_ARCH).patched.img
 
 * flash.sh 
 ** Write the data to dev board's emmc with "fastboot" command.
-
-----
 
 * jump_targets.sh 
 ** Define the jump destination of the "j" command (e.g. "j kernel" or "j uboot").

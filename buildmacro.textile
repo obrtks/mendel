@@ -1,3 +1,5 @@
+h2. Macros
+
 * $(IS_EXTERNAL)
 ** Defined in preamble.mk.
 ** Indicate if the build is performed outside of google.
