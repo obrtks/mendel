@@ -1,0 +1,438 @@
+root@debian:/rootdir# ls
+GettingStarted.md  docs			       imx-board-wlan	     libdrm-imx  typescript
+Makefile	   imx-atf		       imx-firmware	     linux-imx	 uboot-imx
+bluez-imx	   imx-atf-arm64.log	       imx-gst-plugins-bad   manifest	 wayland-protocols-imx
+board		   imx-atf_4-2.dsc	       imx-gst-plugins-base  out	 weston-imx
+build		   imx-atf_4-2.tar.gz	       imx-gst-plugins-good  packages
+cache		   imx-atf_4-2_amd64.build     imx-gst1.0-plugin     prebuilts
+debbootstrap.deb   imx-atf_4-2_source.changes  imx-gstreamer	     tools
+root@debian:/rootdir# source setbuild/setup.sh 
+========================================
+ROOTDIR=/rootdir
+OUT=/rootdir/out
+PRODUCT_OUT=/rootdir/out/target/product/imx8m_phanbell
+HOST_OUT=/rootdir/out/host/linux-x86
+ROOT_OUT=/rootdir/out/root
+========================================
+
+Type m to build.
+root@debian:/rootdir# mkdir tmp
+root@debian:/rootdir# cd tmp/
+root@debian:/rootdir/tmp# cp -rf ../out/target/product/imx8m_phanbell/obj/imx-atf* . -rfroot@debian:/rootdir/tmp#
+root@debian:/rootdir/tmp# cd ls 
+imx-atf			   imx-atf_4-2.diff.gz	imx-atf_4-2_amd64.build     imx-atf_4.orig.tar.gz
+imx-atf_4-2.debian.tar.gz  imx-atf_4-2.dsc	imx-atf_4-2_source.changes
+root@debian:/rootdir/tmp# cd imx-atf
+root@debian:/rootdir/tmp/imx-atf# pdebuild --buildresult out -- --debbuildopts "--build=full -sa --check-command=lintian --check-option=--fail-on-warnings --check-option=--profile=mendel" --basetgz /rootdir/cache/cross-base.tgz --configfile /rootdir/build/pbuilderrc --hookdir /rootdir/build/pbuilder-hooks --host-arch arm64 --logfile imx-atf-arm64.logu': pdebuild --buildresult out -- --debbuildopts "--build=full -sa --check-command=lintian --check-option=--fail-on-warnings --check-option=--profile=mendel" --basetgz /rootdir/cache/cross-base.tgz --configfile /rooroot@debian:/rootdir/tmp/imx-atf# pdebuild --buildresult out -- --debbuildopts "--build=full -sa --check-command=lintian --check-option=--fail-on-warnings --check-option=--profile=mendel" --basetgz /rootdir/cache/cross-base.tgz --configfile /rootdir/build/pbuilderrc --hookdir /rootdir/build/pbuilder-hooks --host-arch arm64 --logfile imx-atf-arm64.log
+
+W: /root/.pbuilderrc does not exist
+dh clean
+dpkg-source: warning: source directory 'imx-atf' is not <sourcepackage>-<upstreamversion> 'imx-atf-4'
+dpkg-source: warning: .orig directory name imx-atf.orig is not <package>-<upstreamversion> (wanted imx-atf-4.orig)
+dpkg-source: info: using source format '1.0'
+dpkg-source: info: building imx-atf using existing imx-atf_4.orig.tar.gz
+dpkg-source: info: building imx-atf in imx-atf_4-2.diff.gz
+dpkg-source: warning: diff '/rootdir/tmp/imx-atf_4-2.diff.gz.new.GEdwqA' doesn't contain any patch
+dpkg-source: info: building imx-atf in imx-atf_4-2.dsc
+I: Generating source changes file for original dsc
+dpkg-genchanges: info: not including original source code in upload
+W: /root/.pbuilderrc does not exist
+I: Logging to imx-atf-arm64.log
+W: pbuilder: network will not be disabled during build!
+I: Current time: Tue Dec 24 05:47:13 JST 2019
+I: pbuilder-time-stamp: 1577134033
+I: Building the build Environment
+I: extracting base tarball [/rootdir/cache/cross-base.tgz]
+I: copying local configuration
+I: mounting /proc filesystem
+I: mounting /sys filesystem
+I: creating /{dev,run}/shm
+I: mounting /dev/pts filesystem
+I: redirecting /dev/ptmx to /dev/pts/ptmx
+I: Mounting /rootdir
+I: Mounting /rootdir/out/target/product/imx8m_phanbell/packages
+I: policy-rc.d already exists
+I: Doing a cross-architecture build
+I: Build architecture: amd64
+I: Host architecture: arm64
+I: Setting up the environment for a cross build...
+Hit:1 http://deb.debian.org/debian buster InRelease
+Get:2 http://deb.debian.org/debian buster/main arm64 Packages [7738 kB]
+Get:3 http://packages.cloud.google.com/apt mendel-day InRelease [6525 B]
+Ign:3 http://packages.cloud.google.com/apt mendel-day InRelease
+Get:4 http://packages.cloud.google.com/apt mendel-bsp-enterprise-day InRelease [6402 B]
+Ign:5 http://packages.cloud.google.com/apt mendel-day/main arm64 Packages
+Ign:4 http://packages.cloud.google.com/apt mendel-bsp-enterprise-day InRelease
+Get:5 http://packages.cloud.google.com/apt mendel-day/main arm64 Packages [16.7 MB]
+Get:6 http://packages.cloud.google.com/apt mendel-bsp-enterprise-day/main arm64 Packages [29.7 kB]
+Fetched 24.5 MB in 5s (4878 kB/s)
+Reading package lists...
+W: GPG error: http://packages.cloud.google.com/apt mendel-day InRelease: The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 6A030B21BA07F4FB
+W: GPG error: http://packages.cloud.google.com/apt mendel-bsp-enterprise-day InRelease: The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 6A030B21BA07F4FB
+I: Obtaining the cached apt archive contents
+I: Copying source file
+I: copying [../imx-atf_4-2.dsc]
+I: copying [../imx-atf_4.orig.tar.gz]
+I: copying [../imx-atf_4-2.diff.gz]
+I: Extracting source
+dpkg-source: warning: extracting unsigned source package (imx-atf_4-2.dsc)
+dpkg-source: info: extracting imx-atf in imx-atf-4
+dpkg-source: info: unpacking imx-atf_4.orig.tar.gz
+dpkg-source: info: applying imx-atf_4-2.diff.gz
+dpkg-source: warning: diff './imx-atf_4-2.diff.gz' doesn't contain any patch
+I: using fakeroot in build.
+I: Installing the build-deps
+I: user script /rootdir/out/target/product/imx8m_phanbell/obj/PBUILDER/20458/tmp/hooks/D05deps starting
++ sed -i '/^deb http:/ s/$/ contrib non-free/' /etc/apt/sources.list
++ echo 'deb [trusted=yes] file:///rootdir/out/target/product/imx8m_phanbell/packages ./'
++ echo 'deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8'
++ echo 'Debug::pkgProblemResolver true;'
++ cp -r /rootdir/build/lintian /usr/share/
++ cat /rootdir/build/bazel-release.pub.gpg
++ apt-key add -
+Warning: apt-key output should not be parsed (stdout is not a terminal)
+OK
++ apt-key add -
++ cat /rootdir/packages/mendel-keyring/cloud-key.gpg
+Warning: apt-key output should not be parsed (stdout is not a terminal)
+OK
++ cat /rootdir/packages/mendel-keyring/linux_signing_key.pub
++ apt-key add -
+Warning: apt-key output should not be parsed (stdout is not a terminal)
+OK
++ apt-get update
+Get:1 file:/rootdir/out/target/product/imx8m_phanbell/packages ./ InRelease
+Ign:1 file:/rootdir/out/target/product/imx8m_phanbell/packages ./ InRelease
+Get:2 file:/rootdir/out/target/product/imx8m_phanbell/packages ./ Release
+Ign:2 file:/rootdir/out/target/product/imx8m_phanbell/packages ./ Release
+Get:3 file:/rootdir/out/target/product/imx8m_phanbell/packages ./ Packages
+Ign:3 file:/rootdir/out/target/product/imx8m_phanbell/packages ./ Packages
+Get:3 file:/rootdir/out/target/product/imx8m_phanbell/packages ./ Packages
+Ign:3 file:/rootdir/out/target/product/imx8m_phanbell/packages ./ Packages
+Get:3 file:/rootdir/out/target/product/imx8m_phanbell/packages ./ Packages
+Ign:3 file:/rootdir/out/target/product/imx8m_phanbell/packages ./ Packages
+Get:3 file:/rootdir/out/target/product/imx8m_phanbell/packages ./ Packages
+Ign:3 file:/rootdir/out/target/product/imx8m_phanbell/packages ./ Packages
+Get:3 file:/rootdir/out/target/product/imx8m_phanbell/packages ./ Packages
+Ign:3 file:/rootdir/out/target/product/imx8m_phanbell/packages ./ Packages
+Get:3 file:/rootdir/out/target/product/imx8m_phanbell/packages ./ Packages
+Ign:3 file:/rootdir/out/target/product/imx8m_phanbell/packages ./ Packages
+Get:3 file:/rootdir/out/target/product/imx8m_phanbell/packages ./ Packages [97.4 kB]
+Get:4 http://storage.googleapis.com/bazel-apt stable InRelease [2256 B]
+Get:5 http://storage.googleapis.com/bazel-apt stable/jdk1.8 amd64 Packages [1939 B]
+Get:6 http://packages.cloud.google.com/apt mendel-day InRelease [6525 B]
+Hit:7 http://deb.debian.org/debian buster InRelease
+Get:8 http://deb.debian.org/debian buster/contrib amd64 Packages [51.0 kB]
+Get:9 http://deb.debian.org/debian buster/non-free arm64 Packages [53.9 kB]
+Get:10 http://deb.debian.org/debian buster/non-free amd64 Packages [88.0 kB]
+Get:11 http://deb.debian.org/debian buster/contrib arm64 Packages [39.2 kB]
+Get:12 http://packages.cloud.google.com/apt mendel-bsp-enterprise-day InRelease [6402 B]
+Fetched 249 kB in 1s (182 kB/s)
+Reading package lists...
+I: user script /rootdir/out/target/product/imx8m_phanbell/obj/PBUILDER/20458/tmp/hooks/D05deps finished
+I: -> Attempting to satisfy build-dependencies
+Note, using file '/build/imx-atf_4-2.dsc' to get the build dependencies
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Starting pkgProblemResolver with broken count: 0
+Starting 2 pkgProblemResolver with broken count: 0
+Done
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Starting pkgProblemResolver with broken count: 0
+Starting 2 pkgProblemResolver with broken count: 0
+Done
+crossbuild-essential-arm64 is already the newest version (12.6).
+The following additional packages will be installed:
+  gcc-8-base:arm64 libasan5:arm64 libatomic1:arm64 libc6:arm64 libfakeroot
+  libgcc-8-dev:arm64 libgcc1:arm64 libgomp1:arm64 libitm1:arm64 liblsan0:arm64
+  libstdc++6:arm64 libtsan0:arm64 libubsan1:arm64 linux-libc-dev:arm64
+Suggested packages:
+  glibc-doc:arm64 libc-l10n:arm64 locales:arm64 manpages-dev:arm64
+  libstdc++-8-doc:arm64
+Recommended packages:
+  libidn2-0:arm64
+The following NEW packages will be installed:
+  fakeroot gcc-8-base:arm64 libasan5:arm64 libatomic1:arm64 libc6:arm64
+  libc6-dev:arm64 libfakeroot libgcc-8-dev:arm64 libgcc1:arm64 libgomp1:arm64
+  libitm1:arm64 liblsan0:arm64 libstdc++-8-dev:arm64 libstdc++6:arm64
+  libtsan0:arm64 libubsan1:arm64 linux-libc-dev:arm64
+debconf: delaying package configuration, since apt-utils is not installed
+0 upgraded, 17 newly installed, 0 to remove and 0 not upgraded.
+Need to get 0 B/10.0 MB of archives.
+After this operation, 63.9 MB of additional disk space will be used.
+Selecting previously unselected package libfakeroot:amd64.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 22050 files and directories currently installed.)
+Preparing to unpack .../00-libfakeroot_1.23-1_amd64.deb ...
+Unpacking libfakeroot:amd64 (1.23-1) ...
+Selecting previously unselected package fakeroot.
+Preparing to unpack .../01-fakeroot_1.23-1_amd64.deb ...
+Unpacking fakeroot (1.23-1) ...
+Selecting previously unselected package gcc-8-base:arm64.
+Preparing to unpack .../02-gcc-8-base_8.3.0-6_arm64.deb ...
+Unpacking gcc-8-base:arm64 (8.3.0-6) ...
+Selecting previously unselected package libgcc1:arm64.
+Preparing to unpack .../03-libgcc1_1%3a8.3.0-6_arm64.deb ...
+Unpacking libgcc1:arm64 (1:8.3.0-6) ...
+Selecting previously unselected package libc6:arm64.
+Preparing to unpack .../04-libc6_2.28-10_arm64.deb ...
+Unpacking libc6:arm64 (2.28-10) ...
+Selecting previously unselected package libstdc++6:arm64.
+Preparing to unpack .../05-libstdc++6_8.3.0-6_arm64.deb ...
+Unpacking libstdc++6:arm64 (8.3.0-6) ...
+Selecting previously unselected package libasan5:arm64.
+Preparing to unpack .../06-libasan5_8.3.0-6_arm64.deb ...
+Unpacking libasan5:arm64 (8.3.0-6) ...
+Selecting previously unselected package libatomic1:arm64.
+Preparing to unpack .../07-libatomic1_8.3.0-6_arm64.deb ...
+Unpacking libatomic1:arm64 (8.3.0-6) ...
+Selecting previously unselected package linux-libc-dev:arm64.
+Preparing to unpack .../08-linux-libc-dev_4.19.67-2+deb10u1_arm64.deb ...
+Unpacking linux-libc-dev:arm64 (4.19.67-2+deb10u1) ...
+Selecting previously unselected package libc6-dev:arm64.
+Preparing to unpack .../09-libc6-dev_2.28-10_arm64.deb ...
+Unpacking libc6-dev:arm64 (2.28-10) ...
+Selecting previously unselected package libgomp1:arm64.
+Preparing to unpack .../10-libgomp1_8.3.0-6_arm64.deb ...
+Unpacking libgomp1:arm64 (8.3.0-6) ...
+Selecting previously unselected package libitm1:arm64.
+Preparing to unpack .../11-libitm1_8.3.0-6_arm64.deb ...
+Unpacking libitm1:arm64 (8.3.0-6) ...
+Selecting previously unselected package liblsan0:arm64.
+Preparing to unpack .../12-liblsan0_8.3.0-6_arm64.deb ...
+Unpacking liblsan0:arm64 (8.3.0-6) ...
+Selecting previously unselected package libtsan0:arm64.
+Preparing to unpack .../13-libtsan0_8.3.0-6_arm64.deb ...
+Unpacking libtsan0:arm64 (8.3.0-6) ...
+Selecting previously unselected package libubsan1:arm64.
+Preparing to unpack .../14-libubsan1_8.3.0-6_arm64.deb ...
+Unpacking libubsan1:arm64 (8.3.0-6) ...
+Selecting previously unselected package libgcc-8-dev:arm64.
+Preparing to unpack .../15-libgcc-8-dev_8.3.0-6_arm64.deb ...
+Unpacking libgcc-8-dev:arm64 (8.3.0-6) ...
+Selecting previously unselected package libstdc++-8-dev:arm64.
+Preparing to unpack .../16-libstdc++-8-dev_8.3.0-6_arm64.deb ...
+Unpacking libstdc++-8-dev:arm64 (8.3.0-6) ...
+Setting up linux-libc-dev:arm64 (4.19.67-2+deb10u1) ...
+Setting up libfakeroot:amd64 (1.23-1) ...
+Setting up fakeroot (1.23-1) ...
+update-alternatives: using /usr/bin/fakeroot-sysv to provide /usr/bin/fakeroot (fakeroot) in auto mode
+Setting up gcc-8-base:arm64 (8.3.0-6) ...
+Setting up libgcc1:arm64 (1:8.3.0-6) ...
+Setting up libc6:arm64 (2.28-10) ...
+Setting up libc6-dev:arm64 (2.28-10) ...
+Setting up libstdc++6:arm64 (8.3.0-6) ...
+Setting up liblsan0:arm64 (8.3.0-6) ...
+Setting up libitm1:arm64 (8.3.0-6) ...
+Setting up libtsan0:arm64 (8.3.0-6) ...
+Setting up libgomp1:arm64 (8.3.0-6) ...
+Setting up libasan5:arm64 (8.3.0-6) ...
+Setting up libatomic1:arm64 (8.3.0-6) ...
+Setting up libubsan1:arm64 (8.3.0-6) ...
+Setting up libgcc-8-dev:arm64 (8.3.0-6) ...
+Setting up libstdc++-8-dev:arm64 (8.3.0-6) ...
+Processing triggers for libc-bin (2.28-10) ...
+Processing triggers for man-db (2.8.5-2) ...
+I: Copying back the cached apt archive contents
+I: Building the package
+I: Running cd /build/imx-atf-4/ && env PATH="/usr/sbin:/usr/bin:/sbin:/bin" HOME="/nonexistent" dpkg-buildpackage -us -uc --build=full -sa --check-command=lintian --check-option=--fail-on-warnings --check-option=--profile=mendel --host-arch arm64
+dpkg-buildpackage: info: source package imx-atf
+dpkg-buildpackage: info: source version 4-2
+dpkg-buildpackage: info: source distribution mendel-day
+dpkg-buildpackage: info: source changed by Coral <coral-support@google.com>
+dpkg-architecture: warning: specified GNU system type aarch64-linux-gnu does not match CC system type x86_64-linux-gnu, try setting a correct CC environment variable
+ dpkg-source --before-build .
+dpkg-buildpackage: info: host architecture arm64
+ fakeroot debian/rules clean
+dh clean
+   debian/rules override_dh_auto_clean
+make[1]: Entering directory '/build/imx-atf-4'
+rm -rf build
+dh_auto_clean
+	make -j6 distclean
+make[2]: Entering directory '/build/imx-atf-4'
+  REALCLEAN
+make[2]: Leaving directory '/build/imx-atf-4'
+make[1]: Leaving directory '/build/imx-atf-4'
+   dh_clean
+ dpkg-source -b .
+dpkg-source: info: using source format '1.0'
+dpkg-source: info: building imx-atf using existing imx-atf_4.orig.tar.gz
+dpkg-source: info: building imx-atf in imx-atf_4-2.diff.gz
+dpkg-source: warning: diff '/build/imx-atf_4-2.diff.gz.new.UYtakp' doesn't contain any patch
+dpkg-source: info: building imx-atf in imx-atf_4-2.dsc
+ debian/rules build
+dh build
+   dh_update_autotools_config
+   dh_autoreconf
+   dh_auto_configure
+   debian/rules override_dh_auto_build
+make[1]: Entering directory '/build/imx-atf-4'
+make LDFLAGS= CFLAGS= CROSS_COMPILE=aarch64-linux-gnu- PLAT=imx8mq bl31
+make[2]: Entering directory '/build/imx-atf-4'
+  CC      plat/imx/imx8mq/imx8mq_bl31_setup.c
+  CC      plat/imx/imx8mq/src.c
+  CC      plat/imx/common/imx8m/hab.c
+  CC      plat/imx/imx8mq/gpc.c
+  CC      plat/imx/common/imx8_sip_svc.c
+  CC      plat/imx/common/misc.c
+  CC      plat/imx/imx8mq/imx8mq_psci.c
+  CC      plat/imx/imx8mq/imx8mq_gpio.c
+  CC      plat/imx/common/imx8m/imx_csu.c
+  CC      plat/imx/common/imx8m/imx_rdc.c
+  CC      plat/imx/common/imx8_topology.c
+  CC      plat/common/plat_psci_common.c
+  CC      lib/xlat_tables/aarch64/xlat_tables.c
+  CC      lib/xlat_tables/xlat_tables_common.c
+  CC      drivers/delay_timer/delay_timer.c
+  CC      drivers/delay_timer/generic_delay_timer.c
+  CC      drivers/arm/gic/v3/gicv3_helpers.c
+  CC      drivers/arm/gic/v3/gicv3_main.c
+  CC      drivers/arm/gic/common/gic_common.c
+  CC      plat/common/plat_gicv3.c
+  CC      plat/imx/common/plat_imx8_gic.c
+  CC      plat/imx/common/imx8m/dram.c
+  CC      plat/imx/common/imx8m/clock.c
+  CC      plat/imx/common/imx8m/lpddr4_retention.c
+  CC      plat/imx/common/imx8m/ddr4_retention.c
+  CC      plat/imx/common/imx8m/lpddr4_helper.c
+  CC      plat/imx/common/imx8m/lpddr4_dvfs.c
+  CC      plat/imx/common/imx8m/ddr4_dvfs.c
+  CC      drivers/arm/tzc/tzc380.c
+  CC      bl31/bl31_main.c
+  CC      bl31/interrupt_mgmt.c
+  CC      bl31/bl31_context_mgmt.c
+  CC      common/runtime_svc.c
+  CC      services/arm_arch_svc/arm_arch_svc_setup.c
+  CC      services/std_svc/std_svc_setup.c
+  CC      lib/el3_runtime/cpu_data_array.c
+  CC      lib/el3_runtime/aarch64/context_mgmt.c
+  CC      lib/cpus/errata_report.c
+  CC      lib/psci/psci_off.c
+  CC      lib/psci/psci_on.c
+  CC      lib/psci/psci_suspend.c
+  CC      lib/psci/psci_common.c
+  CC      lib/psci/psci_main.c
+  CC      lib/psci/psci_setup.c
+  CC      lib/psci/psci_system_off.c
+  CC      lib/psci/psci_mem_protect.c
+  CC      lib/locks/bakery/bakery_lock_normal.c
+  CC      lib/extensions/spe/spe.c
+  CC      lib/extensions/sve/sve.c
+  CC      common/bl_common.c
+  CC      common/tf_log.c
+  CC      plat/common/plat_bl_common.c
+  CC      plat/common/plat_log_common.c
+  CC      plat/common/aarch64/plat_common.c
+  AS      plat/imx/common/imx8_helpers.S
+  AS      plat/imx/common/mxcuart_console.S
+  AS      lib/cpus/aarch64/cortex_a53.S
+  AS      drivers/console/aarch64/console.S
+  AS      bl31/aarch64/bl31_entrypoint.S
+  AS      bl31/aarch64/crash_reporting.S
+  AS      bl31/aarch64/ea_delegate.S
+  AS      bl31/aarch64/runtime_exceptions.S
+  AS      lib/aarch64/setjmp.S
+  AS      lib/cpus/aarch64/dsu_helpers.S
+  AS      plat/common/aarch64/platform_mp_stack.S
+  AS      lib/el3_runtime/aarch64/cpu_data.S
+  AS      lib/cpus/aarch64/cpu_helpers.S
+  AS      lib/locks/exclusive/aarch64/spinlock.S
+  AS      lib/psci/aarch64/psci_helpers.S
+  AS      lib/el3_runtime/aarch64/context.S
+  AS      lib/cpus/aarch64/wa_cve_2017_5715_bpiall.S
+  AS      lib/cpus/aarch64/wa_cve_2017_5715_mmu.S
+  AS      common/aarch64/debug.S
+  AS      lib/aarch64/cache_helpers.S
+  AS      lib/aarch64/misc_helpers.S
+  AS      plat/common/aarch64/platform_helpers.S
+  PP      bl31/bl31.ld.S
+  CC      lib/libc/abort.c
+  CC      lib/libc/assert.c
+  CC      lib/libc/exit.c
+  CC      lib/libc/memchr.c
+  CC      lib/libc/memcmp.c
+  CC      lib/libc/memcpy.c
+  CC      lib/libc/memmove.c
+  CC      lib/libc/memset.c
+  CC      lib/libc/printf.c
+  CC      lib/libc/putchar.c
+  CC      lib/libc/puts.c
+  CC      lib/libc/snprintf.c
+  CC      lib/libc/strchr.c
+  CC      lib/libc/strcmp.c
+  CC      lib/libc/strlen.c
+  CC      lib/libc/strncmp.c
+  CC      lib/libc/strnlen.c
+  AR      build/imx8mq/release/lib/libc.a
+  LD      build/imx8mq/release/bl31/bl31.elf
+  BIN     build/imx8mq/release/bl31.bin
+
+Built build/imx8mq/release/bl31.bin successfully
+
+  OD      build/imx8mq/release/bl31/bl31.dump
+make[2]: Leaving directory '/build/imx-atf-4'
+make[1]: Leaving directory '/build/imx-atf-4'
+   dh_auto_test
+   create-stamp debian/debhelper-build-stamp
+ fakeroot debian/rules binary
+dh binary
+   dh_testroot
+   dh_prep
+   debian/rules override_dh_auto_install
+make[1]: Entering directory '/build/imx-atf-4'
+dh_auto_install
+install -d debian/imx-atf/usr/share/imx-atf
+install -m 644 -o 0 -g 0 build/imx8mq/release/bl31.bin debian/imx-atf/usr/share/imx-atf/bl31.bin
+make[1]: Leaving directory '/build/imx-atf-4'
+   dh_installdocs
+   dh_installchangelogs
+   dh_perl
+   dh_link
+   dh_strip_nondeterminism
+   dh_compress
+   dh_fixperms
+   dh_missing
+   dh_strip
+   dh_makeshlibs
+   dh_shlibdeps
+   dh_installdeb
+   dh_gencontrol
+   dh_md5sums
+   dh_builddeb
+dpkg-deb: building package 'imx-atf' in '../imx-atf_4-2_arm64.deb'.
+ dpkg-genbuildinfo --build=full
+ dpkg-genchanges -sa --build=full >../imx-atf_4-2_arm64.changes
+dpkg-genchanges: info: including full source code in upload
+ dpkg-source --after-build .
+ lintian --fail-on-warnings --profile=mendel ../imx-atf_4-2_arm64.changes
+dpkg-buildpackage: info: full upload (original source is included)
+warning: --fail-on-warnings is deprecated
+I: Copying back the cached apt archive contents
+I: unmounting /rootdir/out/target/product/imx8m_phanbell/packages filesystem
+I: unmounting /rootdir filesystem
+I: unmounting dev/ptmx filesystem
+I: unmounting dev/pts filesystem
+I: unmounting dev/shm filesystem
+I: unmounting proc filesystem
+I: unmounting sys filesystem
+I: cleaning the build env 
+I: removing directory /rootdir/out/target/product/imx8m_phanbell/obj/PBUILDER/20458 and its subdirectories
+I: Current time: Tue Dec 24 05:47:50 JST 2019
+I: pbuilder-time-stamp: 1577134070
+root@debian:/rootdir/tmp/imx-atf# find out/
+out/
+out/imx-atf_4-2_arm64.deb
+out/imx-atf_4-2.diff.gz
+out/imx-atf_4-2_arm64.buildinfo
+out/imx-atf_4.orig.tar.gz
+out/imx-atf_4-2.dsc
+out/imx-atf_4-2_arm64.changes
+root@debian:/rootdir/tmp/imx-atf# ls
+Makefile	      bl2u    contributing.rst	drivers		   lib		    out		tools
+acknowledgements.rst  bl31    dco.txt		fdts		   license.rst	    plat
+bl1		      bl32    debian		imx-atf-arm64.log  maintainers.rst  readme.rst
+bl2		      common  docs		include		   make_helpers     services
