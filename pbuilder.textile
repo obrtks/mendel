@@ -1,0 +1,37 @@
+Mendel Linux uses several virtualization tools like docker or chroot  and qemu in the build.
+
+h2. pbuilder 
+
+"pbuilder":https://pbuilder-team.pages.debian.net/pbuilder/ is a tool to create .deb package files.
+
+pbuilder compiles the packages based on "chroot" to compile the package in the clean environment.
+
+* Related information
+** "https://wiki.ubuntu.com/PbuilderHowto":https://wiki.ubuntu.com/PbuilderHowto
+** "https://qiita.com/mt08/items/389432c5d931dce19315":https://qiita.com/mt08/items/389432c5d931dce19315
+
+There are 2 steps to use pbuilder, "create" and "build".
+
+h3. create
+
+"pbuilder create" command generates chroot image ("base.tgz").
+In Mendel Linux build, 2 types of base.tgz is created and used.
+
+* native_base.tgz
+** This image is used to run the x86 programs and use cross compiler.
+
+* cross_base.tgz
+** This image is used to run the arm programs and use arm native compiler.
+
+h3. build
+
+In Mendel Linux build, pbuilder is executed in the docker image.
+Optionally, it pbuilder can be processed manually.
+
+Following is the manual execution log example of the building .deb package.
+In the log, You can find that "imx-atf_4-2_arm64.deb file" is created in the "out/" directory.
+
+----
+
+<pre>
+</pre>
