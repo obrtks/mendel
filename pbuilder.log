@@ -6,6 +6,7 @@ board		   imx-atf_4-2.dsc	       imx-gst-plugins-base  out	 weston-imx
 build		   imx-atf_4-2.tar.gz	       imx-gst-plugins-good  packages
 cache		   imx-atf_4-2_amd64.build     imx-gst1.0-plugin     prebuilts
 debbootstrap.deb   imx-atf_4-2_source.changes  imx-gstreamer	     tools
+
 root@debian:/rootdir# source setbuild/setup.sh 
 ========================================
 ROOTDIR=/rootdir
@@ -18,11 +19,12 @@ ROOT_OUT=/rootdir/out/root
 Type m to build.
 root@debian:/rootdir# mkdir tmp
 root@debian:/rootdir# cd tmp/
-root@debian:/rootdir/tmp# cp -rf ../out/target/product/imx8m_phanbell/obj/imx-atf* . -rfroot@debian:/rootdir/tmp#
-root@debian:/rootdir/tmp# cd ls 
+root@debian:/rootdir/tmp# cp -rf ../out/target/product/imx8m_phanbell/obj/imx-atf* .
+root@debian:/rootdir/tmp# ls 
 imx-atf			   imx-atf_4-2.diff.gz	imx-atf_4-2_amd64.build     imx-atf_4.orig.tar.gz
 imx-atf_4-2.debian.tar.gz  imx-atf_4-2.dsc	imx-atf_4-2_source.changes
 root@debian:/rootdir/tmp# cd imx-atf
+
 root@debian:/rootdir/tmp/imx-atf# pdebuild --buildresult out -- --debbuildopts "--build=full -sa --check-command=lintian --check-option=--fail-on-warnings --check-option=--profile=mendel" --basetgz /rootdir/cache/cross-base.tgz --configfile /rootdir/build/pbuilderrc --hookdir /rootdir/build/pbuilder-hooks --host-arch arm64 --logfile imx-atf-arm64.logu': pdebuild --buildresult out -- --debbuildopts "--build=full -sa --check-command=lintian --check-option=--fail-on-warnings --check-option=--profile=mendel" --basetgz /rootdir/cache/cross-base.tgz --configfile /rooroot@debian:/rootdir/tmp/imx-atf# pdebuild --buildresult out -- --debbuildopts "--build=full -sa --check-command=lintian --check-option=--fail-on-warnings --check-option=--profile=mendel" --basetgz /rootdir/cache/cross-base.tgz --configfile /rootdir/build/pbuilderrc --hookdir /rootdir/build/pbuilder-hooks --host-arch arm64 --logfile imx-atf-arm64.log
 
 W: /root/.pbuilderrc does not exist
