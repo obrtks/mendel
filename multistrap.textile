@@ -1,0 +1,45 @@
+h2. multistrap
+
+"https://wiki.debian.org/Multistrap":https://wiki.debian.org/Multistrap
+		
+
+Multistrap is a tool to create a root file system. It can generate the root file system of arm64 in x86.
+
+In Mendel Linux build, multistrap is exected directory on x86 machine (not run in the docker image). Multistrap fetches prebuild .deb packages and creates "rootfs_arm64.raw.img". "rootfs_arm64.raw.img" is a 'raw' (plain) image for arm64. TPU board specific extra .deb files are additionally installed on this image file.
+
+Usage of multistrap
+* "https://github.com/jeasinema/debian-ubuntu-zynq/blob/master/README.md":https://github.com/jeasinema/debian-ubuntu-zynq/blob/master/README.md
+* "https://developmentkit.wordpress.com/2012/05/29/make-your-own-debian-system-for-arm-building-debian-root-file-system/":https://developmentkit.wordpress.com/2012/05/29/make-your-own-debian-system-for-arm-building-debian-root-file-system/
+
+Following is an example of the manual execution of multistrap.
+
+----
+<code>
+ root@debian:/rootdir/tmp# ./multistrap -f /rootdir/out/target/product/imx8m_phanbell/multistrap.conf -d rootfs
+ multistrap 2.2.10 using /rootdir/out/target/product/imx8m_phanbell/multistrap.conf
+ multistrap 2.2.10 using /rootdir/out/target/product/imx8m_phanbell/multistrap.conf
+ Using foreign architecture: arm64
+ multistrap building arm64 multistrap on 'amd64'
+ <snip>
+ I: Unpacking complete.
+ I: Tidying up apt cache and list data.
+ I: Tidying up apt cache and list data.
+ 
+ Multistrap system installed successfully in /rootdir/tmp/rootfs/.
+</code>
+
+----
+
+Full build result is "here":https://github.com/obrtks/mendel/blob/master/multistrap.log?raw=true)
+
+After the execution of the multistrap command, fundamental files/directories (e.g. bin  boot  dev  etc  home  lib  lib64  proc  root  run  sbin  sys  tmp  usr  var) for linux are defined.
+
+----
+<code>
+root@debian:/rootdir/tmp# ls
+multistrap  rootfs
+root@debian:/rootdir/tmp# ls rootfs/
+bin  boot  dev		  etc  home  lib	lib64  proc  root  run	sbin  sys  tmp	usr  var
+</code>
+
+----
