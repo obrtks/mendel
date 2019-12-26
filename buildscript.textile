@@ -100,6 +100,9 @@ recovery     - generate a flashable recovery image
 * generate_update_tarball.py
 * lintian
 * update_packages.sh
+** create an index file ("Packages") of .deb package in core/ and bsp/.
+** The index files are stored into "packages.tgz" along with the .deb packages.
+** In rootfs.mk, the packages.tgz is extracted in opt/aiy/ and then the .deb packaes of the directory is installed by "apt-get install" as $(PRE_INSTALL_PACKAGES).
 
 * vizdeps.py
 
