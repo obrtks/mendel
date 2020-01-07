@@ -174,6 +174,19 @@ After generating the rootfs, finally computes the sha256 hash.
   1723	Using foreign architecture: arm64
   1724	multistrap building arm64 multistrap on 'amd64'
   <snip>
+  3362	Multistrap system installed successfully in /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/.
+  3363	
+  3364	sudo mount -o bind /dev /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/dev
+  3365	sudo cp /usr/bin/qemu-aarch64-static /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/usr/bin
+  3366	# Configure base-passwd first since a bunch of things relies on /etc/passwd existing without base-passwd as a dep.
+  3367	# python2.7-minimal requires (m)awk
+  3368	# See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=924401
+  3369	# TODO(jtgans): Find out how debootstrap handles this.
+  3370	sudo DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true LC_ALL=C LANGUAGE=C LANG=C chroot /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs dpkg --configure \
+  3371		gcc-8-base libgcc1 libc6 libdebconfclient0 base-passwd mawk
+  <snip>
+  3380	sudo DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true LC_ALL=C LANGUAGE=C LANG=C chroot /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs dpkg --configure -a
+  <snip>
   4053	done.
   4054	sudo rm -f /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/usr/bin/qemu-aarch64-static
   4055	sudo umount /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/dev
