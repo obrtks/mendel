@@ -1,0 +1,107 @@
+This article explains how the SD-Card image ("sdcard_arm64.img) is prepared by "m sdcard" command.
+In the preparation step, it is assumed that the steps of the "eMMC build":https://embeddedgadgetslab.blogspot.com/2020/01/understanding-build-process-of-mendel.html are already executed and several components such as docker image or .deb files are built beforehand.
+
+( For your referrence, the build log is "here":https://github.com/obrtks/mendel/blob/master/typescript )
+
+
+h2. Prepare the prerequisites binaries ("u-boot.imx", "boot_arm64.img" and "rootfs_arm64.patched.img")
+
+Like the build steps of eMMC, exactly same steps are performed again in the following order.
+
+# Extract uboot ("u-boot.imx") from .deb file
+# Apply patch for multstrap
+# Create a plain rootfs ("rootfs_arm64.raw.img") for aarch64
+# Install the built .deb files to the boot ("boot_arm64.img") and rootfs ("rootfs_arm64.patched.img")
+
+----
+<pre>
+ 59330	*** GUI build selected -- set HEADLESS_BUILD=true if this is not what you intend.
+ 59331	*** Building packages locally, set FETCH_PACKAGES=true to use prebuilts
+ 59332	find /root/mendel/out/target/product/imx8m_phanbell/packages -name 'uboot-imx*arm64*.deb' | xargs \
+ 59333	dpkg --fsys-tarfile | \
+ 59334	tar --strip-components 2 -C /root/mendel/out/target/product/imx8m_phanbell -xf - ./boot/u-boot.imx
+ 59335	sudo cp /usr/sbin/multistrap /tmp/multistrap
+ 59336	cd /tmp && sudo patch < /root/mendel/build/multistrap-fix.patch
+ 59337	patching file multistrap
+ 59338	mkdir -p /root/mendel/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs
+ ...
+ 61707	sha256sum /root/mendel/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.raw.img > /root/mendel/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.raw.img.sha256sum
+ 61708	mkdir -p /root/mendel/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs
+ ...
+ 62980	mv /root/mendel/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.patched.img.wip /root/mendel/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.patched.img
+</pre>
+----
+
+h2. Concatenating the binaries into single file ("sdcard_arm64.img")
+
+After the preparation of "u-boot.imx", "boot_arm64.img" and "rootfs_arm64.patched.img", merge those files into "sdcard_arm64.img".
+Using "fallocate" and "dd" to manipulate the binary into single file.
+As a minor adjustment, fstab information is updated to comply with sdcard configuration.
+
+
+----
+<pre>
+ 62981	fallocate -l 4232M /root/mendel/out/target/product/imx8m_phanbell/sdcard_arm64.img.wip
+ 62982	parted -s /root/mendel/out/target/product/imx8m_phanbell/sdcard_arm64.img.wip mklabel msdos
+ 62983	parted -s /root/mendel/out/target/product/imx8m_phanbell/sdcard_arm64.img.wip unit MiB mkpart primary ext2 8 136
+ 62984	parted -s /root/mendel/out/target/product/imx8m_phanbell/sdcard_arm64.img.wip unit MiB mkpart primary ext4 136 100%
+ 62985	dd if=/root/mendel/out/target/product/imx8m_phanbell/u-boot.imx of=/root/mendel/out/target/product/imx8m_phanbell/sdcard_arm64.img.wip conv=notrunc seek=66 bs=512
+ ...
+ 62989	dd if=/root/mendel/out/target/product/imx8m_phanbell/boot_arm64.img of=/root/mendel/out/target/product/imx8m_phanbell/sdcard_arm64.img.wip conv=notrunc seek=8 bs=1M
+ ...
+ 62993	dd if=/root/mendel/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.patched.img \
+ 62994		of=/root/mendel/out/target/product/imx8m_phanbell/sdcard_arm64.img.wip conv=notrunc seek=136 bs=1M
+ ...
+ 62998	mkdir -p /root/mendel/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs
+ ...
+ 63005	/root/mendel/board/make_sdcard.sh /root/mendel/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs /root/mendel/out/target/product/imx8m_phanbell/sdcard_arm64.img.wip /root/mendel
+ 63006	+ ROOTFS_DIR=/root/mendel/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs
+ 63007	+ SDCARD_PATH=/root/mendel/out/target/product/imx8m_phanbell/sdcard_arm64.img.wip
+ 63008	+ ROOTDIR=/root/mendel
+ 63009	++ sudo losetup --show -f /root/mendel/out/target/product/imx8m_phanbell/sdcard_arm64.img.wip
+ 63010	+ LOOP=/dev/loop0
+ 63011	+ sudo partx -d /dev/loop0
+ 63012	partx: specified range <1:0> does not make sense
+ 63013	+ true
+ 63014	+ sudo partx -a /dev/loop0
+ 63015	+ sudo mount /dev/loop0p2 /root/mendel/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs
+ 63016	+ sudo mount /dev/loop0p1 /root/mendel/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/boot
+ 63017	+ sudo cp /root/mendel/board/fstab.sdcard /root/mendel/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/etc/fstab
+ 63018	+ sudo umount /root/mendel/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/boot
+ 63019	+ sudo umount /root/mendel/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs
+ 63020	+ sudo partx -d /dev/loop0
+ 63021	+ sudo losetup -d /dev/loop0
+ 63022	rmdir /root/mendel/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs
+ 63023	mv /root/mendel/out/target/product/imx8m_phanbell/sdcard_arm64.img.wip /root/mendel/out/target/product/imx8m_phanbell/sdcard_arm64.img
+</pre>
+----
+
+The make rule is defined in the following point.
+
+* sdcard.mk
+
+<pre>
+    33	$(SDCARD_PATH): $(ROOTDIR)/build/rootfs.mk \
+    34	                $(ROOTDIR)/board/boot.mk \
+    35	                $(ROOTDIR)/board/fstab.sdcard \
+    36	                | $(PRODUCT_OUT)/u-boot.imx \
+    37	                $(PRODUCT_OUT)/boot_$(USERSPACE_ARCH).img \
+    38	                $(PRODUCT_OUT)/obj/ROOTFS/rootfs_$(USERSPACE_ARCH).patched.img \
+    39	                out-dirs
+    40		fallocate -l $(SDIMAGE_SIZE_MB)M $(SDCARD_WIP_PATH)
+    41		parted -s $(SDCARD_WIP_PATH) mklabel msdos
+    42		parted -s $(SDCARD_WIP_PATH) unit MiB mkpart primary ext2 $(BOOT_START) $(ROOTFS_START)
+    43		parted -s $(SDCARD_WIP_PATH) unit MiB mkpart primary ext4 $(ROOTFS_START) 100%
+    44		dd if=$(PRODUCT_OUT)/u-boot.imx of=$(SDCARD_WIP_PATH) conv=notrunc seek=$(UBOOT_START) bs=512
+    45		dd if=$(PRODUCT_OUT)/boot_$(USERSPACE_ARCH).img of=$(SDCARD_WIP_PATH) conv=notrunc seek=$(BOOT_START) bs=1M
+    46		dd if=$(PRODUCT_OUT)/obj/ROOTFS/rootfs_$(USERSPACE_ARCH).patched.img \
+    47			of=$(SDCARD_WIP_PATH) conv=notrunc seek=$(ROOTFS_START) bs=1M
+    48	
+    49		mkdir -p $(ROOTFS_DIR)
+    50		-sudo umount $(ROOTFS_DIR)/boot
+    51		-sudo umount $(ROOTFS_DIR)
+    52		$(ROOTDIR)/board/make_sdcard.sh $(ROOTFS_DIR) $(SDCARD_WIP_PATH) $(ROOTDIR)
+    53		rmdir $(ROOTFS_DIR)
+    54	
+    55		mv $(SDCARD_WIP_PATH) $(SDCARD_PATH)
+</pre>
