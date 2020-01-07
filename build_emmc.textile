@@ -51,7 +51,7 @@ The make rule is defined in the following point.
 
 h3. Execute "m all" in docker
 
-Lounch docker image with passing the "all" argument to perform "m all" in docker.
+Launch docker image with passing the "all" argument to perform "m all" in docker.
 
 ----
 <pre>
@@ -149,9 +149,9 @@ The make rule is defined in the following point.
 
 h3. Create a plain rootfs ("rootfs_arm64.raw.img") for aarch64
 
-"rootfs_arm64.raw.img" is a plain image of debian buster which does not include any goole edge tpu specific files.
-The rootfs is formated with falocate and mkfs.ext. And then extract files using "multistrap" and it's configuration file (multistrap.conf).
-"qemu-aarch64-static is also copied into the rootfs" to perfrom the installation of aarch64 .deb files on x86 host.
+"rootfs_arm64.raw.img" is a plain image of debian buster which does not include any google edge tpu specific files.
+The rootfs is formated with fallocate and mkfs.ext. And then extract files using "multistrap" and it's configuration file (multistrap.conf).
+"qemu-aarch64-static is also copied into the rootfs" to perform the installation of aarch64 .deb files on x86 host.
 
 After generating the rootfs, finally computes the sha256 hash.
 
@@ -288,7 +288,8 @@ h3. Perform "pbuilder create" to generate the base image ("cross-base.tgz") for 
   4079	I: Checking Release signature
   4080	I: Valid Release signature (key id 6D33866EDD8FFA41C0143AEDDCC9EFBF77E11517)
   <snip>
-  5666	Processing triggers for libc-bin (2.28-10) ...
+  5666	Processing triggers for libc-bin (2.28-10) ...
+
   5667	[0mI: unmounting dev/ptmx filesystem[0m
   5668	[0mI: unmounting dev/pts filesystem[0m
   5669	[0mI: unmounting dev/shm filesystem[0m
@@ -500,7 +501,7 @@ h3. Perform "pbuilder create" to generate the base image ("native-base.tgz") for
 
 Some .deb packages are build in the native (aarch64) environment.
 The aarch64 environment is simulated by qemu in the chroot on x86 host machine.
-pbuilder support the this native compile option, in addition to the cross environement (cross-base.tgz).
+pbuilder support the this native compile option, in addition to the cross environment (cross-base.tgz).
 
 * processor in pdebuild (chroot)
 ** When "cross-base.tgz" is specified, then the processor in chroot becomes x86.
@@ -582,8 +583,8 @@ h3. Build "python3-edgetpuvision_6-1_arm64.deb"
 
 "python3-edgetpuvision_6-1_arm64.deb" is created in aarch64 environment instead of x86. So "native-base.tgz" is specified here to emulate aarch64.
 
-In the chroot process, aarch64's python is additionaly installed, and the edgetpuvision's python scripts are tested and installed.
-Finally the scriptes are packed into the .deb file.
+In the chroot process, aarch64's python is additionally installed, and the edgetpuvision's python scripts are tested and installed.
+Finally the scripts are packed into the .deb file.
 
 ----
 <pre>
@@ -669,7 +670,7 @@ The make rule is defined in the following point.
 h3. Generete the other .deb files
 
 For each definition of "make-pbuilder-bsp-package-target" or "make-pbuilder-package-target" is build likewise.
-The packege specified with "binary" (e.g. GPU [vivante] binary) is not build, but just fetched the pre-build binary blobs from git.
+The package specified with "binary" (e.g. GPU [vivante] binary) is not build, but just fetched the pre-build binary blobs from git.
 
 
 ----
