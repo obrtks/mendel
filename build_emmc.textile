@@ -1,0 +1,1186 @@
+h2. Understanding the build process of Mendel Linux (for eMMC)
+
+The build commands of Mendel Linux is simply mentioned in "GettingStarted.md".
+Only after executing the "m" commands, the following image files will be generated (Those files will be written to eMMC, fastboot command "flash.sh").
+
+# "partition-table-***.img" (partition definition for eMMC)
+# "u-boot.imx" (arm trusted firmware, u-boot, and binary blobs for HDMI,DRAM controller)
+# "boot_arm64.img" (linux kernel)
+# "rootfs_arm64.img" (linux userland)
+
+
+Behind this simple commands, various build tools are executed in the background.
+The complete build log is "**here**.":https://github.com/obrtks/mendel/blob/master/typescript
+In the following section, with comparing to the makefile, the build process of Mendel Linux is explained in step by step.
+
+h3. Create the docker image
+
+docker image "aiy-board-builder.tar" is created using "Dockerfile".
+
+----
+<pre>
+    14	*** GUI build selected -- set HEADLESS_BUILD=true if this is not what you intend.
+    15	*** Building packages locally, set FETCH_PACKAGES=true to use prebuilts
+    16	mkdir -p /root/mendel/cache/docker-build
+    17	cp -a /root/mendel/build /root/mendel/cache/docker-build
+    18	cp -a /root/mendel/board /root/mendel/cache/docker-build
+    19	cp -a /root/mendel/build/Dockerfile /root/mendel/cache/docker-build
+    20	docker build -t aiy-board-builder /root/mendel/cache/docker-build
+  <snip>
+  1630	docker image save -o /root/mendel/cache/aiy-board-builder.tar aiy-board-builder:latest
+  1631	docker rmi aiy-board-builder:latest
+  1632	Untagged: aiy-board-builder:latest
+  1633	Deleted: sha256:ad543214cd32bfba98ade0b4f0d06fe53473ce972b29797b0b4218585c196e0b
+  1634	Deleted: sha256:2b66679cbd383ead85904a1be6639a21883d4d84ffc386c6058cbd2f4fb2bc6b
+  1635	Deleted: sha256:50f7116a486fd07d033618ab48be1cff544752648426afd3f1d761600cbe06e4
+  1636	Deleted: sha256:d56b43cdf551bad4aeda9ca0727d29e48535165e8dbbbbf4c1f121a2a8eb0e12
+  1637	Deleted: sha256:38b6e875ce3fecb1bfe12fac148021183d37c3df7ff42bf8034dc91ac5f07a66
+  1638	Deleted: sha256:827478d14e9c67d28a1609bff8b19bfc22f2ee940f1ec850da12ac1fe09ca0cb
+  1639	rm -rf /root/mendel/cache/docker-build
+</pre>
+----
+
+The make rule is defined in the following point.
+
+* docker.mk
+
+<pre>
+    100	.DEFAULT_GOAL:=docker-all
+    27	$(ROOTDIR)/cache/aiy-board-builder.tar: $(ROOTDIR)/build/Dockerfile $(ROOTDIR)/build/prereqs.mk
+</pre>
+
+h3. Execute "m all" in docker
+
+Lounch docker image with passing the "all" argument to perform "m all" in docker.
+
+----
+<pre>
+  1640	docker load -i /root/mendel/cache/aiy-board-builder.tar
+  <snip>
+  1645	docker run \
+  1646		--rm --privileged --tty -i \
+  1647		-v /dev\:/dev -v /root/mendel\:/rootdir \
+  1648		-e "FETCH_PACKAGES=false" -e "HEADLESS_BUILD=" -e "IS_EXTERNAL=true" -e "http_proxy=" -e "USERSPACE_ARCH=arm64" -e "QEMU_ARCH=aarch64" \
+  1649		-w /rootdir \
+  1650		aiy-board-builder \
+  1651		/bin/bash -c \
+  1652			'groupadd --gid 0 root; \
+  1653			useradd -m -e "" -s /bin/bash --gid 0 --uid 0 root; \
+  1654			passwd -d root; \
+  1655			echo "root ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers; \
+  1656			sudo cp /rootdir/build/99network-settings /etc/apt/apt.conf.d/; \
+  1657			sudo chmod 644 /etc/apt/apt.conf.d/99network-settings; \
+  1658			sudo -E -u root /bin/bash -c "source build/setup.sh; m \
+  1659			all";'
+</pre>
+
+----
+
+The make rule is defined in the following point.
+
+* docker.mk
+
+<pre>
+    69	docker-%: docker-build;
+</pre>
+
+"m all" performs "all" target processing defined in Makefile.
+
+h3. Build "img2simg"
+
+When "all" target of Makefile is specified to run, "img2simg" is built at first.
+
+----
+<pre>
+  1675	mkdir -p /rootdir/out/host/linux-x86/obj/LIBSPARSE
+  1676	cc /rootdir/tools/img2simg/libsparse/backed_block.c -c -o /rootdir/out/host/linux-x86/obj/LIBSPARSE/backed_block.o -I/rootdir/tools/img2simg/libsparse/include -I/rootdir/tools/img2simg//include
+  <snip>
+  1688	g++ /rootdir/tools/img2simg/libsparse/img2simg.c /rootdir/out/host/linux-x86/obj/LIBSPARSE/backed_block.o /rootdir/out/host/linux-x86/obj/LIBSPARSE/output_file.o /rootdir/out/host/linux-x86/obj/LIBSPARSE/sparse.o /rootdir/out/host/linux-x86/obj/LIBSPARSE/sparse_crc32.o /rootdir/out/host/linux-x86/obj/LIBSPARSE/sparse_err.o /rootdir/out/host/linux-x86/obj/LIBSPARSE/sparse_read.o -o /rootdir/out/host/linux-x86/bin/img2simg -I/rootdir/tools/img2simg/libsparse/include -lz
+</pre>
+----
+
+The make rule is defined in the following point.
+
+* Makefile
+
+<pre>
+    52	all: rootfs bootloader partition-table
+</pre>
+
+* rootfs.mk
+
+<pre>
+    46	rootfs: $(ROOTFS_IMG)
+   182	$(ROOTFS_IMG): $(HOST_OUT)/bin/img2simg $(ROOTFS_PATCHED_IMG)
+</pre>
+
+* img2simg.mk
+
+<pre>
+    41	$(HOST_OUT)/bin/img2simg: $(IMG2SIMG_SOURCES) $(LIBSPARSE_OBJS)
+    42		mkdir -p $(dir $@)
+    43		$(CXX) $^ -o $@ -I$(LIBSPARSE_DIR)/include -lz
+</pre>
+
+
+h3. Apply patch for multstrap
+
+
+----
+<pre>
+  1689	sudo cp /usr/sbin/multistrap /tmp/multistrap
+  1690	cd /tmp && sudo patch < /rootdir/build/multistrap-fix.patch
+  1691	patching file multistrap
+</pre>
+----
+
+The make rule is defined in the following point.
+
+* multistrap.mk
+
+<pre>
+    25	/tmp/multistrap: $(ROOTDIR)/build/multistrap-fix.patch
+    26	# multistrap in buster is hosed and missing the Acquire::AllowInsecureRepositories=yes flag for apt.
+    27	# TODO(jtgans): EWW! RIP THIS OUT WHEN BUSTER IS FIXED! EWW!
+    28		sudo cp /usr/sbin/multistrap /tmp/multistrap
+    29		cd /tmp && sudo patch < $(ROOTDIR)/build/multistrap-fix.patch
+</pre>
+
+
+h3. Create a plain rootfs ("rootfs_arm64.raw.img") for aarch64
+
+"rootfs_arm64.raw.img" is a plain image of debian buster which does not include any goole edge tpu specific files.
+The rootfs is formated with falocate and mkfs.ext. And then extract files using "multistrap" and it's configuration file (multistrap.conf).
+"qemu-aarch64-static is also copied into the rootfs" to perfrom the installation of aarch64 .deb files on x86 host.
+
+After generating the rootfs, finally computes the sha256 hash.
+
+----
+<pre>
+  1692	mkdir -p /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs
+  1693	rm -f /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.raw.img
+  1694	fallocate -l 4096M /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.raw.img
+  1695	mkfs.ext4 -F -j /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.raw.img
+  <snip>
+  1708	tune2fs -o discard /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.raw.img
+  <snip>
+  1716	sudo mount -o loop /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.raw.img /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs
+  1717	cp /rootdir/board/multistrap.conf /rootdir/out/target/product/imx8m_phanbell
+  1718	sed -i -e 's/MAIN_PACKAGES/alsa-utils apt-transport-https apt-listchanges apt-utils aptitude avahi-daemon bash-completion build-essential cpio cron curl dbus debconf-i18n debian-archive-keyring debian-faq dialog dmidecode dnsmasq doc-debian ethtool file firmware-atheros gettext-base gnupg hdparm i2c-tools ifupdown init iptables iputils-ping isc-dhcp-client isc-dhcp-common kbd krb5-locales less libc++1 libc++abi1 libclass-isa-perl libinput10 liblockfile-bin libnss-mdns libpam-systemd libswitch-perl libwayland-cursor0 libwayland-egl1-mesa libxcb-composite0 libxcb-shape0 libxcursor1 libxkbcommon0 linux-base lm-sensors locales logrotate lrzsz lsof man-db manpages nano ncurses-term net-tools netbase netcat-traditional network-manager openssh-server parted pciutils psmisc pulseaudio python python-minimal python2.7 python3-gst-1.0 python3-jwt python3-numpy python3-pip python3-protobuf python3-reportbug python3-setuptools python3-wheel reportbug rsync rsyslog software-properties-common sudo systemd systemd-sysv tasksel telnet traceroute unattended-upgrades unzip v4l-utils vim wamerican wget whiptail wireless-tools wpasupplicant xdg-user-dirs xwayland /g' /rootdir/out/target/product/imx8m_phanbell/multistrap.conf
+  1719	sed -i -e 's/USERSPACE_ARCH/arm64/g' /rootdir/out/target/product/imx8m_phanbell/multistrap.conf
+  1720	sudo /tmp/multistrap -f /rootdir/out/target/product/imx8m_phanbell/multistrap.conf -d /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs
+  1721	multistrap 2.2.10 using /rootdir/out/target/product/imx8m_phanbell/multistrap.conf
+  1722	multistrap 2.2.10 using /rootdir/out/target/product/imx8m_phanbell/multistrap.conf
+  1723	Using foreign architecture: arm64
+  1724	multistrap building arm64 multistrap on 'amd64'
+  <snip>
+  4053	done.
+  4054	sudo rm -f /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/usr/bin/qemu-aarch64-static
+  4055	sudo umount /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/dev
+  4056	sudo umount /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs
+  4057	sudo rmdir /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs
+  4058	sudo sync /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.raw.img
+  4059	sudo chown root /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.raw.img
+  4060	sha256sum /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.raw.img > /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.raw.img.sha256sum
+</pre>
+----
+
+The make rule is defined in the following point.
+
+* rootfs.mk
+
+<pre>
+    69	$(ROOTFS_RAW_IMG): $(ROOTDIR)/build/preamble.mk $(ROOTDIR)/build/rootfs.mk /usr/bin/qemu-$(QEMU_ARCH)-static /tmp/multistrap
+    70		$(LOG) rootfs raw-build
+    71		mkdir -p $(ROOTFS_DIR)
+    72		rm -f $(ROOTFS_RAW_IMG)
+    73		fallocate -l $(ROOTFS_SIZE_MB)M $(ROOTFS_RAW_IMG)
+    74		mkfs.ext4 -F -j $(ROOTFS_RAW_IMG)
+    75		tune2fs -o discard $(ROOTFS_RAW_IMG)
+    76		-sudo umount $(ROOTFS_DIR)/dev
+    77		-sudo umount $(ROOTFS_DIR)
+    78		sudo mount -o loop $(ROOTFS_RAW_IMG) $(ROOTFS_DIR)
+    79		cp $(ROOTDIR)/board/multistrap.conf $(PRODUCT_OUT)
+    80		sed -i -e 's/MAIN_PACKAGES/$(PACKAGES_EXTRA)/g' $(PRODUCT_OUT)/multistrap.conf
+    81		sed -i -e 's/USERSPACE_ARCH/$(USERSPACE_ARCH)/g' $(PRODUCT_OUT)/multistrap.conf
+    82	
+    83		$(LOG) rootfs raw-build multistrap
+    84	# TODO(jtgans): EWW! RIP THIS OUT WHEN BUSTER IS FIXED! EWW!
+    85		sudo /tmp/multistrap -f $(PRODUCT_OUT)/multistrap.conf -d $(ROOTFS_DIR)
+    86		$(LOG) rootfs raw-build multistrap finished
+    87	
+    88		sudo mount -o bind /dev $(ROOTFS_DIR)/dev
+    89		sudo cp /usr/bin/qemu-$(QEMU_ARCH)-static $(ROOTFS_DIR)/usr/bin
+    90	
+    91		$(LOG) rootfs raw-build dpkg-configure
+    92		# Configure base-passwd first since a bunch of things relies on /etc/passwd existing without base-passwd as a dep.
+    93		# python2.7-minimal requires (m)awk
+    94		# See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=924401
+    95		# TODO(jtgans): Find out how debootstrap handles this.
+    96		sudo DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true LC_ALL=C LANGUAGE=C LANG=C chroot $(ROOTFS_DIR) dpkg --configure \
+    97			gcc-8-base libgcc1 libc6 libdebconfclient0 base-passwd mawk
+    98		sudo DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true LC_ALL=C LANGUAGE=C LANG=C chroot $(ROOTFS_DIR) dpkg --configure -a
+    99		$(LOG) rootfs raw-build dpkg-configure finished
+   100	
+   101		sudo rm -f $(ROOTFS_DIR)/usr/bin/qemu-$(QEMU_ARCH)-static
+   102		sudo umount $(ROOTFS_DIR)/dev
+   103		sudo umount $(ROOTFS_DIR)
+   104		sudo rmdir $(ROOTFS_DIR)
+   105		sudo sync $(ROOTFS_RAW_IMG)
+   106		sudo chown ${USER} $(ROOTFS_RAW_IMG)
+   107		sha256sum $(ROOTFS_RAW_IMG) > $(ROOTFS_RAW_IMG).sha256sum
+   108		$(LOG) rootfs raw-build finished
+</pre>
+
+h3. Check "packages/" (and just leave log message)
+
+Some .deb files are just imported from apt and will not be compiled on the host.
+Such files are not included in the packages/ directory.
+If the directory is not included, then no compiling is performed.
+
+----
+<pre>
+  4061	touch /rootdir/out/target/product/imx8m_phanbell/.android-core-pbuilder-arm64
+</pre>
+----
+
+The make rule is defined in the following point.
+
+* packages.mk
+
+<pre>
+    81	# If we don't have the source for a package for some reason, don't panic.
+    82	# Just set the pbuilder stamp, and it will come from apt.
+    83	ifneq (,$(wildcard $(ROOTDIR)/packages/$1))
+   <snip>
+   122	else
+   123	$(PRODUCT_OUT)/.$1-pbuilder-$(USERSPACE_ARCH): | out-dirs
+   124	endif
+   125		touch $(PRODUCT_OUT)/.$1-pbuilder-$(USERSPACE_ARCH)
+</pre>
+
+<pre>
+   138	$(eval $(call make-pbuilder-package-target,android-core,android-core))
+</pre>
+
+h3. Perform "pbuilder create" to generate the base image ("cross-base.tgz") for cross compiling
+
+
+----
+<pre>
+  4062	mkdir -p /rootdir/cache
+  4063	sudo pbuilder create \
+  4064		--basetgz /rootdir/cache/cross-base.tgz \
+  4065		--othermirror "deb [trusted=yes] http://packages.cloud.google.com/apt mendel-day main|deb [trusted=yes] http://packages.cloud.google.com/apt mendel-bsp-enterprise-day main" \
+  4066		--distribution buster \
+  4067		--architecture amd64 \
+  4068		--extrapackages "crossbuild-essential-armhf crossbuild-essential-arm64 debhelper gnupg lintian qemu-user-static" \
+  4069		--aptcache ""
+  4070	W: /root/.pbuilderrc does not exist
+  4071	[1;33mW: cgroups are not available on the host, not using them.[0m
+  4072	[0mI: Distribution is buster.[0m
+  4073	[0mI: Current time: Mon Nov 25 14:04:05 UTC 2019[0m
+  4074	[0mI: pbuilder-time-stamp: 1574690645[0m
+  4075	[0mI: Building the build environment[0m
+  4076	[0mI: running debootstrap[0m
+  4077	/usr/sbin/debootstrap
+  4078	I: Retrieving InRelease 
+  4079	I: Checking Release signature
+  4080	I: Valid Release signature (key id 6D33866EDD8FFA41C0143AEDDCC9EFBF77E11517)
+  <snip>
+  5666	Processing triggers for libc-bin (2.28-10) ...
+  5667	[0mI: unmounting dev/ptmx filesystem[0m
+  5668	[0mI: unmounting dev/pts filesystem[0m
+  5669	[0mI: unmounting dev/shm filesystem[0m
+  5670	[0mI: unmounting proc filesystem[0m
+  5671	[0mI: unmounting sys filesystem[0m
+  5672	[0mI: creating base tarball [/rootdir/cache/cross-base.tgz][0m
+  5673	[0mI: cleaning the build env [0m
+  5674	[0mI: removing directory /var/cache/pbuilder/build/2915 and its subdirectories[0m
+</pre>
+----
+
+The make rule is defined in the following point.
+
+* packages.mk
+
+<pre>
+    21	pbuilder-base: $(ROOTDIR)/cache/cross-base.tgz $(ROOTDIR)/cache/native-base.tgz
+    22	
+    23	ifneq ($(FETCH_PBUILDER_DIRECTORY),)
+    24	$(ROOTDIR)/cache/cross-base.tgz: $(FETCH_PBUILDER_DIRECTORY)/cross-base.tgz | out-dirs
+    25		cp $< $(ROOTDIR)/cache
+    26	else
+    27	$(ROOTDIR)/cache/cross-base.tgz:
+    28		mkdir -p $(ROOTDIR)/cache
+    29		sudo pbuilder create \
+    30			--basetgz $@ \
+    31			--othermirror "deb [trusted=yes] http://packages.cloud.google.com/apt mendel-day main|deb [trusted=yes] http://packages.cloud.google.com/apt mendel-bsp-$(BOARD_NAME)-day main" \
+    32			--distribution buster \
+    33			--architecture amd64 \
+    34			--extrapackages "crossbuild-essential-armhf crossbuild-essential-arm64 debhelper gnupg lintian qemu-user-static" \
+    35			--aptcache ""
+    36	endif
+</pre>
+
+h3. Build the first aarch64 .deb package ("mendel-minimal_8-3_all.deb")
+
+
+Copy the input files of mendel-minimal from packages/ to out/ directory. And then, execute "pbuilder" with "cross-base.tgz" in the copied directory.
+Build result files are as follows.
+* out/target/product/imx8m_phanbell/obj/mendel-minimal_8-3.debian.tar.gz
+* out/target/product/imx8m_phanbell/obj/mendel-minimal_8-3.diff.gz
+* out/target/product/imx8m_phanbell/obj/mendel-minimal_8-3.dsc
+* out/target/product/imx8m_phanbell/obj/mendel-minimal_8-3_amd64.build
+* out/target/product/imx8m_phanbell/obj/mendel-minimal_8-3_source.changes
+* out/target/product/imx8m_phanbell/obj/mendel-minimal_8.orig.tar.gz
+* out/target/product/imx8m_phanbell/obj/mendel-minimal:
+** debian  etc  usr
+* out/target/product/imx8m_phanbell/packages/core/mendel-minimal_8-3.diff.gz
+* out/target/product/imx8m_phanbell/packages/core/mendel-minimal_8-3.dsc
+* out/target/product/imx8m_phanbell/packages/core/mendel-minimal_8-3_all.deb
+* out/target/product/imx8m_phanbell/packages/core/mendel-minimal_8-3_arm64.buildinfo
+* out/target/product/imx8m_phanbell/packages/core/mendel-minimal_8-3_arm64.changes
+* out/target/product/imx8m_phanbell/packages/core/mendel-minimal_8.orig.tar.gz
+
+Build log is stored in "out/target/product/imx8m_phanbell/mendel-minimal-arm64.log".
+
+----
+<pre>
+  5675	/rootdir/build/update_packages.sh
+  5676	+ flock -e 200
+  5677	+ cd /rootdir/out/target/product/imx8m_phanbell/packages
+  5678	+ apt-ftparchive -o APT::FTPArchive::SHA512=false packages bsp
+  5679	+ cd /rootdir/out/target/product/imx8m_phanbell/packages
+  5680	+ apt-ftparchive -o APT::FTPArchive::SHA512=false packages core
+  5681	if [[ -e /rootdir/packages/mendel-minimal/.git ]]; then cd /rootdir/packages/mendel-minimal; git submodule init; git submodule update; fi
+  5682	rm -rf /rootdir/out/target/product/imx8m_phanbell/obj/mendel-minimal
+  5683	mkdir -p /rootdir/out/target/product/imx8m_phanbell/obj/mendel-minimal
+  5684	rsync -a --exclude .git/ /rootdir/packages/mendel-minimal/* /rootdir/out/target/product/imx8m_phanbell/obj/mendel-minimal
+  5685	cp -a /rootdir/packages/mendel-minimal/debian /rootdir/out/target/product/imx8m_phanbell/obj/mendel-minimal
+  5686	touch -t 7001010000  /rootdir/out/target/product/imx8m_phanbell/obj/mendel-minimal
+  5687	tar -C /rootdir/out/target/product/imx8m_phanbell/obj -I 'gzip -n' --exclude=debian/ -cf /rootdir/out/target/product/imx8m_phanbell/obj/mendel-minimal_8.orig.tar.gz mendel-minimal
+  5688	tar -C /rootdir/out/target/product/imx8m_phanbell/obj/mendel-minimal -I 'gzip -n' -cf /rootdir/out/target/product/imx8m_phanbell/obj/mendel-minimal_8-3.debian.tar.gz debian
+  5689	sudo cp /rootdir/build/99network-settings ~/
+  5690	echo "cp ~/99network-settings /etc/apt/apt.conf.d/" | sudo tee ~/.pbuilderrc
+  5691	cp ~/99network-settings /etc/apt/apt.conf.d/
+  5692	cd /rootdir/out/target/product/imx8m_phanbell/obj/mendel-minimal; pdebuild --buildresult /rootdir/out/target/product/imx8m_phanbell/packages/core -- --debbuildopts "--build=full -sa --check-command=lintian --check-option=--fail-on-warnings --check-option=--profile=mendel" --basetgz /rootdir/cache/cross-base.tgz --configfile /rootdir/build/pbuilderrc --hookdir /rootdir/build/pbuilder-hooks --host-arch arm64 --logfile /rootdir/out/target/product/imx8m_phanbell/mendel-minimal-arm64.log
+  5693	make[1]: Entering directory '/rootdir/out/target/product/imx8m_phanbell/obj/mendel-minimal'
+  <snip>
+  5962	dpkg-source: info: building mendel-minimal using existing mendel-minimal_8.orig.tar.gz
+  5963	dpkg-source: info: building mendel-minimal in mendel-minimal_8-3.diff.gz
+  5964	dpkg-source: warning: diff '/build/mendel-minimal_8-3.diff.gz.new.Suo4qx' doesn't contain any patch
+  5965	dpkg-source: info: building mendel-minimal in mendel-minimal_8-3.dsc
+  <snip>
+  5992	dpkg-deb: building package 'mendel-minimal' in '../mendel-minimal_8-3_all.deb'.
+  5993	make[1]: Leaving directory '/build/mendel-minimal-8'
+  5994	 dpkg-genbuildinfo --build=full
+  5995	 dpkg-genchanges -sa --build=full >../mendel-minimal_8-3_arm64.changes
+  5996	dpkg-genchanges: info: including full source code in upload
+  5997	 dpkg-source --after-build .
+  5998	 lintian --fail-on-warnings --profile=mendel ../mendel-minimal_8-3_arm64.changes
+  5999	dpkg-buildpackage: info: full upload (original source is included)
+  6000	warning: --fail-on-warnings is deprecated
+  6001	[0mI: Copying back the cached apt archive contents[0m
+  6002	[0mI: unmounting /rootdir/out/target/product/imx8m_phanbell/packages filesystem[0m
+  6003	[0mI: unmounting /rootdir filesystem[0m
+  6004	[0mI: unmounting dev/ptmx filesystem[0m
+  6005	[0mI: unmounting dev/pts filesystem[0m
+  6006	[0mI: unmounting dev/shm filesystem[0m
+  6007	[0mI: unmounting proc filesystem[0m
+  6008	[0mI: unmounting sys filesystem[0m
+  6009	[0mI: cleaning the build env [0m
+  6010	[0mI: removing directory /rootdir/out/target/product/imx8m_phanbell/obj/PBUILDER/20105 and its subdirectories[0m
+  6011	[0mI: Current time: Mon Nov 25 14:08:19 UTC 2019[0m
+  6012	[0mI: pbuilder-time-stamp: 1574690899[0m
+  6013	touch /rootdir/out/target/product/imx8m_phanbell/.mendel-minimal-pbuilder-arm64
+</pre>
+----
+
+The make rule is defined in the following point.
+
+* packages.mk
+
+<pre>
+   139	$(eval $(call make-pbuilder-package-target,mendel-minimal,packages/mendel-minimal))
+</pre>
+
+<pre>
+    70	# $1: package name
+    71	# $2: source location (relative to ROOTDIR)
+    72	# $3: space separated list of package dependencies (may be empty)
+    73	# $4: space separated list of external dependencies (may be empty)
+    74	# $5: dpkg-buildpackage --build value (may be empty, defaults to full)
+    75	# $6: repository which package belongs to (e.g. core or bsp)
+    76	# $7: whether to use a cross or native pbuilder env (may be empty, defaults to cross)
+    77	define make-pbuilder-package-target
+    78	$1: $(PRODUCT_OUT)/.$1-pbuilder-$(USERSPACE_ARCH)
+    79	PBUILDER_TARGETS += $(PRODUCT_OUT)/.$1-pbuilder-$(USERSPACE_ARCH)
+    80	
+    81	# If we don't have the source for a package for some reason, don't panic.
+    82	# Just set the pbuilder stamp, and it will come from apt.
+    83	ifneq (,$(wildcard $(ROOTDIR)/packages/$1))
+    84	$(PRODUCT_OUT)/.$1-pbuilder-$(USERSPACE_ARCH): \
+    85		$(foreach package,$3,$(PRODUCT_OUT)/.$(package)-pbuilder-$(USERSPACE_ARCH)) \
+    86		$$(shell find $(ROOTDIR)/packages/$1 -type f) \
+    87		$$(shell find $(ROOTDIR)/$2 -type f | sed -e 's/ /\\ /g') \
+    88		| out-dirs $(ROOTDIR)/cache/$(if $7,$7,cross)-base.tgz \
+    89		$4
+    90	
+    91		$(LOG) $1 pbuilder
+    92		$(ROOTDIR)/build/update_packages.sh
+    93		if [[ -e $(ROOTDIR)/$2/.git ]]; then \
+    94			cd $(ROOTDIR)/$2; \
+    95			git submodule init; \
+    96			git submodule update; \
+    97		fi
+    98		rm -rf $(PRODUCT_OUT)/obj/$1
+    99		mkdir -p $(PRODUCT_OUT)/obj/$1
+   100		rsync -a --exclude .git/ $(ROOTDIR)/$2/* $(PRODUCT_OUT)/obj/$1
+   101		cp -a $(ROOTDIR)/packages/$1/debian $(PRODUCT_OUT)/obj/$1
+   102		touch -t 7001010000  $(PRODUCT_OUT)/obj/$1
+   103		tar -C $(PRODUCT_OUT)/obj -I 'gzip -n' --exclude=debian/ -cf \
+   104			$(PRODUCT_OUT)/obj/$1_$$(call get-deb-version-orig,$1).orig.tar.gz \
+   105			$1
+   106		tar -C $(PRODUCT_OUT)/obj/$1 -I 'gzip -n' -cf \
+   107			$(PRODUCT_OUT)/obj/$1_$$(call get-deb-version-full,$1).debian.tar.gz \
+   108			debian
+   109	
+   110		sudo cp $(ROOTDIR)/build/99network-settings ~/
+   111		echo "cp ~/99network-settings /etc/apt/apt.conf.d/" | sudo tee ~/.pbuilderrc
+   112	
+   113		$(LOG) $1 pbuilder pdebuild
+   114		cd $(PRODUCT_OUT)/obj/$1; pdebuild \
+   115			--buildresult $(PRODUCT_OUT)/packages/$(if $6,$6,core) -- \
+   116			--debbuildopts "--build=$(if $5,$5,full) -sa --check-command=lintian --check-option=--fail-on-warnings --check-option=--profile=mendel" \
+   117			--basetgz $(ROOTDIR)/cache/$(if $7,$7,cross)-base.tgz \
+   118			--configfile $(ROOTDIR)/build/pbuilderrc \
+   119			--hookdir $(ROOTDIR)/build/pbuilder-hooks \
+   120			--host-arch $(USERSPACE_ARCH) --logfile $(PRODUCT_OUT)/$1-$(USERSPACE_ARCH).log
+   121		$(LOG) $1 finished
+   122	else
+   123	$(PRODUCT_OUT)/.$1-pbuilder-$(USERSPACE_ARCH): | out-dirs
+   124	endif
+   125		touch $(PRODUCT_OUT)/.$1-pbuilder-$(USERSPACE_ARCH)
+   126	
+   127	$1-source-directory:
+   128		echo "Source directory: $2"
+   129	
+   130	.PHONY:: $1 $1-source-directory
+   131	endef
+</pre>
+
+h3. Build "base-files_10.3+mendel1_arm64.deb"
+
+Build steps are mostly similar to the first .deb file.
+
+
+----
+<pre>
+  6014	/rootdir/build/update_packages.sh
+  <snip>
+  6031	cd /rootdir/out/target/product/imx8m_phanbell/obj/base-files; pdebuild --buildresult /rootdir/out/target/product/imx8m_phanbell/packages/core -- --debbuildopts "--build=full -sa --check-command=lintian --check-option=--fail-on-warnings --check-option=--profile=mendel" --basetgz /rootdir/cache/cross-base.tgz --configfile /rootdir/build/pbuilderrc --hookdir /rootdir/build/pbuilder-hooks --host-arch arm64 --logfile /rootdir/out/target/product/imx8m_phanbell/base-files-arm64.log
+  6032	make[1]: Entering directory '/rootdir/out/target/product/imx8m_phanbell/obj/base-files'
+  <snip>
+  6321	dpkg-deb: building package 'base-files' in '../base-files_10.3+mendel1_arm64.deb'.
+  <snip>
+  6343	touch /rootdir/out/target/product/imx8m_phanbell/.base-files-pbuilder-arm64
+</pre>
+----
+
+The make rule is defined in the following point.
+
+* packages.mk
+
+<pre>
+   140	$(eval $(call make-pbuilder-package-target,base-files,packages/base-files))
+</pre>
+
+h3. Perform "pbuilder create" to generate the base image ("native-base.tgz") for native compiling
+
+Some .deb packages are build in the native (aarch64) environment.
+The aarch64 environment is simulated by qemu in the chroot on x86 host machine.
+pbuilder support the this native compile option, in addition to the cross environement (cross-base.tgz).
+
+* processor in pdebuild (chroot)
+** When "cross-base.tgz" is specified, then the processor in chroot becomes x86.
+<code>
+pdebuild ... --basetgz **~/mendel/cache/cross-base.tgz** ...
+...
++ uname -a
+Linux debian 4.19.0-6-amd64 #1 SMP Debian 4.19.67-2+deb10u2 (2019-11-11) **x86_64** GNU/Linux
+</code>
+** When "native-base.tgz" is specified, then the processor in chroot becomes aarch64.
+<code>
+pdebuild ... --basetgz **~/mendel/cache/native-base.tgz** ...
+...
++ uname -a
+Linux debian 4.19.0-6-amd64 #1 SMP Debian 4.19.67-2+deb10u2 (2019-11-11) **aarch64** GNU/Linux
+</code>
+
+Here, the base image for native compile "native-base.tgz" is generated.
+In the last step, qemu for arm and aarch64 are copied in to the image.
+
+----
+<pre>
+  6343	touch /rootdir/out/target/product/imx8m_phanbell/.base-files-pbuilder-arm64
+  6344	mkdir -p /rootdir/cache
+  6345	sudo pbuilder create \
+  6346		--basetgz /rootdir/cache/native-base.tgz \
+  6347		--othermirror "deb [trusted=yes] http://packages.cloud.google.com/apt mendel-day main|deb [trusted=yes] http://packages.cloud.google.com/apt mendel-bsp-enterprise-day main" \
+  6348		--distribution buster \
+  6349		--architecture arm64 \
+  6350		--extrapackages "build-essential debhelper gnupg lintian" \
+  6351		--aptcache ""
+  6352	[1;33mW: cgroups are not available on the host, not using them.[0m
+  6353	[0mI: Distribution is buster.[0m
+  <snip>
+  7647	[0mI: cleaning the build env [0m
+  7648	[0mI: removing directory /var/cache/pbuilder/build/26383 and its subdirectories[0m
+  7649	mkdir -p /rootdir/cache/base-tmp
+  7650	cd /rootdir/cache/base-tmp; \
+  7651	sudo tar xf /rootdir/cache/native-base.tgz; \
+  7652	sudo cp /usr/bin/qemu-arm-static usr/bin; \
+  7653	sudo cp /usr/bin/qemu-aarch64-static usr/bin; \
+  7654	sudo tar cf base.tar .; \
+  7655	gzip base.tar; mv -f base.tar.gz /rootdir/cache/native-base.tgz
+  7656	tar: ./base.tar: file is the archive; not dumped
+  7657	sudo rm -rf /rootdir/cache/base-tmp
+</pre>
+----
+
+The make rule is defined in the following point.
+
+* packages.mk
+
+<pre>
+    38	ifneq ($(FETCH_PBUILDER_DIRECTORY),)
+    39	$(ROOTDIR)/cache/native-base.tgz: $(FETCH_PBUILDER_DIRECTORY)/native-base.tgz | out-dirs
+    40		cp $< $(ROOTDIR)/cache
+    41	else
+    42	$(ROOTDIR)/cache/native-base.tgz: /usr/bin/qemu-aarch64-static /usr/bin/qemu-arm-static
+    43		mkdir -p $(ROOTDIR)/cache
+    44		sudo pbuilder create \
+    45			--basetgz $@ \
+    46			--othermirror "deb [trusted=yes] http://packages.cloud.google.com/apt mendel-day main|deb [trusted=yes] http://packages.cloud.google.com/apt mendel-bsp-$(BOARD_NAME)-day main" \
+    47			--distribution buster \
+    48			--architecture arm64 \
+    49			--extrapackages "build-essential debhelper gnupg lintian" \
+    50			--aptcache ""
+    51		mkdir -p $(ROOTDIR)/cache/base-tmp
+    52		cd $(ROOTDIR)/cache/base-tmp; \
+    53		sudo tar xf $@; \
+    54		sudo cp /usr/bin/qemu-arm-static usr/bin; \
+    55		sudo cp /usr/bin/qemu-aarch64-static usr/bin; \
+    56		sudo tar cf base.tar .; \
+    57		gzip base.tar; mv -f base.tar.gz $@
+    58		sudo rm -rf $(ROOTDIR)/cache/base-tmp
+    59	endif
+</pre>
+
+h3. Build "python3-edgetpuvision_6-1_arm64.deb"
+
+"python3-edgetpuvision_6-1_arm64.deb" is created in aarch64 environment instead of x86. So "native-base.tgz" is specified here to emulate aarch64.
+
+In the chroot process, aarch64's python is additionaly installed, and the edgetpuvision's python scripts are tested and installed.
+Finally the scriptes are packed into the .deb file.
+
+----
+<pre>
+  7658	/rootdir/build/update_packages.sh
+  <snip>
+  7675	cd /rootdir/out/target/product/imx8m_phanbell/obj/edgetpuvision; pdebuild --buildresult /rootdir/out/target/product/imx8m_phanbell/packages/core -- --debbuildopts "--build=full -sa --check-command=lintian --check-option=--fail-on-warnings --check-option=--profile=mendel" --basetgz /rootdir/cache/native-base.tgz --configfile /rootdir/build/pbuilderrc --hookdir /rootdir/build/pbuilder-hooks --host-arch arm64 --logfile /rootdir/out/target/product/imx8m_phanbell/edgetpuvision-arm64.log
+  <snip>
+  7782	The following NEW packages will be installed:
+  7783	  dh-python libblkid-dev libcap2 libcap2-bin libexpat1 libffi-dev
+  7784	  libglib2.0-bin libglib2.0-data libglib2.0-dev libglib2.0-dev-bin
+  7785	  libgstreamer1.0-0 libgstreamer1.0-dev libmount-dev libmpdec2 libpcre16-3
+  7786	  libpcre3-dev libpcre32-3 libpcrecpp0v5 libpython3-stdlib
+  7787	  libpython3.7-minimal libpython3.7-stdlib libselinux1-dev libsepol1-dev
+  7788	  mime-support pkg-config python3 python3-all python3-distutils
+  7789	  python3-lib2to3 python3-minimal python3-pkg-resources python3-setuptools
+  7790	  python3.7 python3.7-minimal uuid-dev zlib1g-dev
+  7791	0 upgraded, 36 newly installed, 0 to remove and 0 not upgraded.
+  7792	Need to get 13.9 MB of archives.
+  <snip>
+  8054	[0mI: Building the package[0m
+  8055	[0mI: Running cd /build/edgetpuvision-6/ && env PATH="/usr/sbin:/usr/bin:/sbin:/bin" HOME="/nonexistent" dpkg-buildpackage -us -uc --build=full -sa --check-command=lintian --check-option=--fail-on-warnings --check-option=--profile=mendel[0m
+  8056	dpkg-buildpackage: info: source package edgetpuvision
+  8057	dpkg-buildpackage: info: source version 6-1
+  8058	dpkg-buildpackage: info: source distribution mendel-day
+  8059	dpkg-buildpackage: info: source changed by Coral <coral-support@google.com>
+  8060	 dpkg-source --before-build .
+  8061	dpkg-buildpackage: info: host architecture arm64
+  8062	 fakeroot debian/rules clean
+  8063	make[1]: Entering directory '/build/edgetpuvision-6'
+  8064	dh clean --with python3 --buildsystem=pybuild
+  8065	   dh_auto_clean -O--buildsystem=pybuild
+  8066	I: pybuild base:217: python3.7 setup.py clean 
+  8067	running clean
+  8068	removing '/build/edgetpuvision-6/.pybuild/cpython3_3.7_edgetpuvision/build' (and everything under it)
+  8069	'build/bdist.linux-arm64' does not exist -- can't clean it
+  8070	'build/scripts-3.7' does not exist -- can't clean it
+  8071	   dh_clean -O--buildsystem=pybuild
+  8072	make[1]: Leaving directory '/build/edgetpuvision-6'
+  8073	 dpkg-source -b .
+  8074	dpkg-source: info: using source format '3.0 (quilt)'
+  8075	dpkg-source: info: building edgetpuvision using existing ./edgetpuvision_6.orig.tar.gz
+  8076	dpkg-source: info: building edgetpuvision in edgetpuvision_6-1.debian.tar.xz
+  8077	dpkg-source: info: building edgetpuvision in edgetpuvision_6-1.dsc
+  8078	 debian/rules build
+  8079	make[1]: Entering directory '/build/edgetpuvision-6'
+  8080	dh build --with python3 --buildsystem=pybuild
+  8081	   dh_update_autotools_config -O--buildsystem=pybuild
+  8082	   dh_auto_configure -O--buildsystem=pybuild
+  8083	I: pybuild base:217: python3.7 setup.py config 
+  8084	running config
+  8085	   dh_auto_build -O--buildsystem=pybuild
+  8086	I: pybuild base:217: /usr/bin/python3 setup.py build 
+  8087	running build
+  8088	running build_py
+  8089	creating /build/edgetpuvision-6/.pybuild/cpython3_3.7_edgetpuvision/build/edgetpuvision
+  8090	copying edgetpuvision/classify_server.py -> /build/edgetpuvision-6/.pybuild/cpython3_3.7_edgetpuvision/build/edgetpuvision
+  8091	copying edgetpuvision/pipelines.py -> /build/edgetpuvision-6/.pybuild/cpython3_3.7_edgetpuvision/build/edgetpuvision
+  8092	copying edgetpuvision/camera.py -> /build/edgetpuvision-6/.pybuild/cpython3_3.7_edgetpuvision/build/edgetpuvision
+  <snip>
+  8220	Skipping SOURCES.txt
+  8221	running install_scripts
+  8222	Installing edgetpu_classify script to /build/edgetpuvision-6/debian/python3-edgetpuvision/usr/bin
+  8223	Installing edgetpu_classify_server script to /build/edgetpuvision-6/debian/python3-edgetpuvision/usr/bin
+  8224	Installing edgetpu_detect script to /build/edgetpuvision-6/debian/python3-edgetpuvision/usr/bin
+  8225	Installing edgetpu_detect_server script to /build/edgetpuvision-6/debian/python3-edgetpuvision/usr/bin
+  <snip>
+  8251	dpkg-deb: building package 'python3-edgetpuvision' in '../python3-edgetpuvision_6-1_arm64.deb'.
+  <snip>
+  8273	touch /rootdir/out/target/product/imx8m_phanbell/.edgetpuvision-pbuilder-arm64
+</pre>
+----
+
+The make rule is defined in the following point.
+
+* packages.mk
+
+<pre>
+   141	$(eval $(call make-pbuilder-package-target,edgetpuvision,packages/edgetpuvision,,,,,native))
+</pre>
+
+
+
+h3. Generete the other .deb files
+
+For each definition of "make-pbuilder-bsp-package-target" or "make-pbuilder-package-target" is build likewise.
+The packege specified with "binary" (e.g. GPU [vivante] binary) is not build, but just fetched the pre-build binary blobs from git.
+
+
+----
+<pre>
+  8274	/rootdir/build/update_packages.sh
+  ...
+  8546	dpkg-deb: building package 'edgetpudemo' in '../edgetpudemo_3-1_all.deb'.
+  ...
+  8567	touch /rootdir/out/target/product/imx8m_phanbell/.edgetpudemo-pbuilder-arm64
+  8568	/rootdir/build/update_packages.sh
+  ...
+  8850	dpkg-deb: building package 'mdt-services' in '../mdt-services_3_all.deb'.
+  ...
+  8872	touch /rootdir/out/target/product/imx8m_phanbell/.mdt-services-pbuilder-arm64
+  8873	/rootdir/build/update_packages.sh
+  ...
+  9152	dpkg-deb: building package 'mendel-distro-info-data' in '../mendel-distro-info-data_3-1_all.deb'.
+  ...
+  9173	touch /rootdir/out/target/product/imx8m_phanbell/.mendel-distro-info-data-pbuilder-arm64
+  9174	/rootdir/build/update_packages.sh
+  ...
+  9481	dpkg-deb: building package 'mendel-keyring' in '../mendel-keyring_3-1_all.deb'.
+  ...
+  9503	touch /rootdir/out/target/product/imx8m_phanbell/.mendel-keyring-pbuilder-arm64
+  9504	/rootdir/build/update_packages.sh
+  ...
+  9797	dpkg-deb: building package 'runonce' in '../runonce_3-1_all.deb'.
+  ...
+  9819	touch /rootdir/out/target/product/imx8m_phanbell/.runonce-pbuilder-arm64
+  9820	/rootdir/build/update_packages.sh
+  ...
+ 10108	dpkg-deb: building package 'usb-gadget' in '../usb-gadget_3-1_all.deb'.
+  ...
+ 10130	touch /rootdir/out/target/product/imx8m_phanbell/.usb-gadget-pbuilder-arm64
+ 10131	/rootdir/build/update_packages.sh
+  ...
+ 10534	dpkg-deb: building package 'vitalsd' in '../vitalsd_2-1_all.deb'.
+  ...
+ 10555	touch /rootdir/out/target/product/imx8m_phanbell/.vitalsd-pbuilder-arm64
+ 10556	/rootdir/build/update_packages.sh
+  ...
+ 10838	dpkg-deb: building package 'mendel-core' in '../mendel-core_2-1_arm64.deb'.
+ 10839	dpkg-deb: building package 'mendel-gui' in '../mendel-gui_2-1_arm64.deb'.
+  ...
+ 10860	touch /rootdir/out/target/product/imx8m_phanbell/.meta-mendel-pbuilder-arm64
+ 10861	/rootdir/build/update_packages.sh
+  ...
+ 11266	dpkg-deb: building package 'imx-atf' in '../imx-atf_4-2_arm64.deb'.
+  ...
+ 11287	touch /rootdir/out/target/product/imx8m_phanbell/.imx-atf-pbuilder-arm64
+ 11288	/rootdir/build/update_packages.sh
+  ...
+ 11588	dpkg-deb: building package 'imx-firmware' in '../imx-firmware_3-2_all.deb'.
+  ...
+ 11610	touch /rootdir/out/target/product/imx8m_phanbell/.imx-firmware-pbuilder-arm64
+ 11611	/rootdir/build/update_packages.sh
+  ...
+ 11902	dpkg-deb: building package 'imx-mkimage' in '../imx-mkimage_3-1_arm64.deb'.
+  ...
+ 11923	touch /rootdir/out/target/product/imx8m_phanbell/.imx-mkimage-pbuilder-arm64
+ 11924	/rootdir/build/update_packages.sh
+  ...
+ 13127	dpkg-deb: building package 'uboot-mkimage' in '../uboot-mkimage_4-3_all.deb'.
+ 13128	dpkg-deb: building package 'uboot-imx' in '../uboot-imx_4-3_arm64.deb'.
+  ...
+ 13150	touch /rootdir/out/target/product/imx8m_phanbell/.uboot-imx-pbuilder-arm64
+ 13151	/rootdir/build/update_packages.sh
+  ...
+ 13578	dpkg-deb: building package 'wayland-protocols' in '../wayland-protocols_1.17+imx-1_all.deb'.
+  ...
+ 13599	touch /rootdir/out/target/product/imx8m_phanbell/.wayland-protocols-imx-pbuilder-arm64
+ 13600	/rootdir/build/update_packages.sh
+  ...
+ 16766	dpkg-deb: building package 'weston-imx-dbgsym' in '../weston-imx-dbgsym_5.0.0-4_arm64.deb'.
+ 16767	dpkg-deb: building package 'weston-imx' in '../weston-imx_5.0.0-4_arm64.deb'.
+  ...
+ 16789	touch /rootdir/out/target/product/imx8m_phanbell/.weston-imx-pbuilder-arm64
+ 16790	/rootdir/build/update_packages.sh
+  ...
+ 25159	dpkg-deb: building package 'linux-kbuild-4.14.98-imx' in '../linux-kbuild-4.14.98-imx_11-4_arm64.deb'.
+ 25160	dpkg-deb: building package 'linux-kbuild-4.14.98-imx-dbgsym' in '../linux-kbuild-4.14.98-imx-dbgsym_11-4_arm64.deb'.
+ 25161	dpkg-deb: building package 'linux-headers-4.14.98-imx' in '../linux-headers-4.14.98-imx_11-4_arm64.deb'.
+ 25162	dpkg-deb: building package 'linux-image-4.14.98-imx' in '../linux-image-4.14.98-imx_11-4_arm64.deb'.
+  ...
+ 25184	touch /rootdir/out/target/product/imx8m_phanbell/.linux-imx-pbuilder-arm64
+ 25185	touch /rootdir/out/target/product/imx8m_phanbell/.imx-gpu-viv-pbuilder-arm64
+ 25186	/rootdir/build/update_packages.sh
+  ...
+ 25797	dpkg-deb: building package 'libdrm-imx-dev' in '../libdrm-imx-dev_2.4.84+imx-mendel3_arm64.deb'.
+ 25798	dpkg-deb: building package 'libdrm-vivante' in '../libdrm-vivante_2.4.84+imx-mendel3_arm64.deb'.
+ 25799	dpkg-deb: building package 'libdrm-vivante-dbgsym' in '../libdrm-vivante-dbgsym_2.4.84+imx-mendel3_arm64.deb'.
+ 25800	dpkg-deb: building package 'libdrm-libkms' in '../libdrm-libkms_2.4.84+imx-mendel3_arm64.deb'.
+ 25801	dpkg-deb: building package 'libdrm-libkms-dbgsym' in '../libdrm-libkms-dbgsym_2.4.84+imx-mendel3_arm64.deb'.
+  ...
+ 25823	touch /rootdir/out/target/product/imx8m_phanbell/.libdrm-imx-pbuilder-arm64
+ 25824	touch /rootdir/out/target/product/imx8m_phanbell/.imx-vpu-hantro-pbuilder-arm64
+ 25825	touch /rootdir/out/target/product/imx8m_phanbell/.imx-vpuwrap-pbuilder-arm64
+ 25826	/rootdir/build/update_packages.sh
+  ...
+ 29138	dpkg-deb: building package 'libgstreamer1.0-0' in '../libgstreamer1.0-0_1.14.4+imx-3_arm64.deb'.
+  ...
+ 29142	dpkg-deb: building package 'libgstreamer1.0-0-dbg' in '../libgstreamer1.0-0-dbg_1.14.4+imx-3_arm64.deb'.
+  ...
+ 29147	dpkg-deb: building package 'libgstreamer1.0-dev' in '../libgstreamer1.0-dev_1.14.4+imx-3_arm64.deb'.
+  ...
+ 29151	dpkg-deb: building package 'gstreamer1.0-tools' in '../gstreamer1.0-tools_1.14.4+imx-3_arm64.deb'.
+  ...
+ 29173	touch /rootdir/out/target/product/imx8m_phanbell/.imx-gstreamer-pbuilder-arm64
+ 29174	/rootdir/build/update_packages.sh
+  ...
+ 35694	dpkg-deb: building package 'gstreamer1.0-plugins-base-apps' in '../gstreamer1.0-plugins-base-apps_1.14.4+imx-5_arm64.deb'.
+  ...
+ 35698	dpkg-deb: building package 'libgstreamer-plugins-base1.0-0' in '../libgstreamer-plugins-base1.0-0_1.14.4+imx-5_arm64.deb'.
+  ...
+ 35703	dpkg-deb: building package 'libgstreamer-plugins-base1.0-dev' in '../libgstreamer-plugins-base1.0-dev_1.14.4+imx-5_arm64.deb'.
+  ...
+ 35707	dpkg-deb: building package 'libgstreamer-gl1.0-0' in '../libgstreamer-gl1.0-0_1.14.4+imx-5_arm64.deb'.
+  ...
+ 35715	dpkg-deb: building package 'gstreamer1.0-alsa' in '../gstreamer1.0-alsa_1.14.4+imx-5_arm64.deb'.
+  ...
+ 35719	dpkg-deb: building package 'gstreamer1.0-plugins-base' in '../gstreamer1.0-plugins-base_1.14.4+imx-5_arm64.deb'.
+  ...
+ 35723	dpkg-deb: building package 'gstreamer1.0-plugins-base-dbg' in '../gstreamer1.0-plugins-base-dbg_1.14.4+imx-5_arm64.deb'.
+  ...
+ 35731	dpkg-deb: building package 'gstreamer1.0-x' in '../gstreamer1.0-x_1.14.4+imx-5_arm64.deb'.
+  ...
+ 35742	dpkg-deb: building package 'gstreamer1.0-gl' in '../gstreamer1.0-gl_1.14.4+imx-5_arm64.deb'.
+  ...
+ 35764	touch /rootdir/out/target/product/imx8m_phanbell/.imx-gst-plugins-base-pbuilder-arm64
+ 35765	touch /rootdir/out/target/product/imx8m_phanbell/.gst-plugins-ugly1.0-pbuilder-arm64
+ 35766	/rootdir/build/update_packages.sh
+  ...
+ 42066	dpkg-deb: building package 'gstreamer1.0-pulseaudio' in '../gstreamer1.0-pulseaudio_1.14.4+imx-5_arm64.deb'.
+  ...
+ 42074	dpkg-deb: building package 'gstreamer1.0-gtk3' in '../gstreamer1.0-gtk3_1.14.4+imx-5_arm64.deb'.
+  ...
+ 42078	dpkg-deb: building package 'gstreamer1.0-plugins-good' in '../gstreamer1.0-plugins-good_1.14.4+imx-5_arm64.deb'.
+  ...
+ 42082	dpkg-deb: building package 'gstreamer1.0-plugins-good-dbg' in '../gstreamer1.0-plugins-good-dbg_1.14.4+imx-5_arm64.deb'.
+  ...
+ 42104	touch /rootdir/out/target/product/imx8m_phanbell/.imx-gst-plugins-good-pbuilder-arm64
+ 42105	/rootdir/build/update_packages.sh
+  ...
+ 51970	dpkg-deb: building package 'gstreamer1.0-plugins-bad' in '../gstreamer1.0-plugins-bad_1.14.4+imx-7_arm64.deb'.
+  ...
+ 51974	dpkg-deb: building package 'gstreamer1.0-plugins-bad-dbg' in '../gstreamer1.0-plugins-bad-dbg_1.14.4+imx-7_arm64.deb'.
+  ...
+ 51978	dpkg-deb: building package 'libgstreamer-plugins-bad1.0-0' in '../libgstreamer-plugins-bad1.0-0_1.14.4+imx-7_arm64.deb'.
+  ...
+ 51982	dpkg-deb: building package 'libgstreamer-plugins-bad1.0-dev' in '../libgstreamer-plugins-bad1.0-dev_1.14.4+imx-7_arm64.deb'.
+  ...
+ 52004	touch /rootdir/out/target/product/imx8m_phanbell/.imx-gst-plugins-bad-pbuilder-arm64
+ 52005	/rootdir/build/update_packages.sh
+  ...
+ 54643	dpkg-deb: building package 'imx-gst1.0-plugin-dbgsym' in '../imx-gst1.0-plugin-dbgsym_4.4.5-5_arm64.deb'.
+ 54644	dpkg-deb: building package 'imx-gst1.0-plugin' in '../imx-gst1.0-plugin_4.4.5-5_arm64.deb'.
+  ...
+ 54666	touch /rootdir/out/target/product/imx8m_phanbell/.imx-gst1.0-plugin-pbuilder-arm64
+ 54667	/rootdir/build/update_packages.sh
+  ...
+ 54946	dpkg-deb: building package 'imx-board-tools' in '../imx-board-tools_6-2_all.deb'.
+  ...
+ 54967	touch /rootdir/out/target/product/imx8m_phanbell/.imx-board-tools-pbuilder-arm64
+ 54968	/rootdir/build/update_packages.sh
+  ...
+ 55247	dpkg-deb: building package 'imx-board-audio' in '../imx-board-audio_5-1_all.deb'.
+  ...
+ 55268	touch /rootdir/out/target/product/imx8m_phanbell/.imx-board-audio-pbuilder-arm64
+ 55269	/rootdir/build/update_packages.sh
+  ...
+ 55918	dpkg-deb: building package 'imx-board-wlan' in '../imx-board-wlan_4-2_all.deb'.
+  ...
+ 55939	touch /rootdir/out/target/product/imx8m_phanbell/.imx-board-wlan-pbuilder-arm64
+ 55940	/rootdir/build/update_packages.sh
+  ...
+ 57712	dpkg-deb: building package 'libbluetooth3' in '../libbluetooth3_5.50+imx-mendel3_arm64.deb'.
+ 57713	dpkg-deb: building package 'bluez-cups' in '../bluez-cups_5.50+imx-mendel3_arm64.deb'.
+ 57714	dpkg-deb: building package 'bluetooth' in '../bluetooth_5.50+imx-mendel3_all.deb'.
+ 57715	dpkg-deb: building package 'bluez-obexd-dbgsym' in '../bluez-obexd-dbgsym_5.50+imx-mendel3_arm64.deb'.
+ 57716	dpkg-deb: building package 'bluez-test-tools' in '../bluez-test-tools_5.50+imx-mendel3_arm64.deb'.
+ 57717	dpkg-deb: building package 'bluez' in '../bluez_5.50+imx-mendel3_arm64.deb'.
+ 57718	dpkg-deb: building package 'libbluetooth3-dbgsym' in '../libbluetooth3-dbgsym_5.50+imx-mendel3_arm64.deb'.
+ 57719	dpkg-deb: building package 'bluez-cups-dbgsym' in '../bluez-cups-dbgsym_5.50+imx-mendel3_arm64.deb'.
+ 57720	dpkg-deb: building package 'bluez-obexd' in '../bluez-obexd_5.50+imx-mendel3_arm64.deb'.
+ 57721	dpkg-deb: building package 'bluez-hcidump' in '../bluez-hcidump_5.50+imx-mendel3_arm64.deb'.
+ 57722	dpkg-deb: building package 'libbluetooth-dev' in '../libbluetooth-dev_5.50+imx-mendel3_arm64.deb'.
+ 57723	dpkg-deb: building package 'bluez-hcidump-dbgsym' in '../bluez-hcidump-dbgsym_5.50+imx-mendel3_arm64.deb'.
+ 57724	dpkg-deb: building package 'bluez-test-tools-dbgsym' in '../bluez-test-tools-dbgsym_5.50+imx-mendel3_arm64.deb'.
+ 57725	dpkg-deb: building package 'bluez-test-scripts' in '../bluez-test-scripts_5.50+imx-mendel3_all.deb'.
+ 57726	dpkg-deb: building package 'bluez-dbgsym' in '../bluez-dbgsym_5.50+imx-mendel3_arm64.deb'.
+ 57748	touch /rootdir/out/target/product/imx8m_phanbell/.bluez-imx-pbuilder-arm64
+ 57749	/rootdir/build/update_packages.sh
+  ...
+ 58030	dpkg-deb: building package 'enterprise-core' in '../enterprise-core_2-1_arm64.deb'.
+ 58031	dpkg-deb: building package 'enterprise-gui' in '../enterprise-gui_2-1_arm64.deb'.
+  ...
+ 58052	touch /rootdir/out/target/product/imx8m_phanbell/.meta-enterprise-pbuilder-arm64
+</pre>
+
+----
+
+The make rule is defined in the following point.
+
+* build/packages.mk
+
+<pre>
+   142	$(eval $(call make-pbuilder-package-target,edgetpudemo,packages/edgetpudemo))
+   143	$(eval $(call make-pbuilder-package-target,mdt-services,packages/mdt-services))
+   144	$(eval $(call make-pbuilder-package-target,mendel-distro-info-data,packages/mendel-distro-info-data))
+   145	$(eval $(call make-pbuilder-package-target,mendel-keyring,packages/mendel-keyring))
+   146	$(eval $(call make-pbuilder-package-target,runonce,packages/runonce))
+   147	$(eval $(call make-pbuilder-package-target,usb-gadget,packages/usb-gadget))
+   148	$(eval $(call make-pbuilder-package-target,vitalsd,packages/vitalsd,,,,,native))
+   149	$(eval $(call make-pbuilder-package-target,meta-mendel,packages/meta-mendel))
+</pre>
+
+* board/packages.mk
+
+<pre>
+    15	$(eval $(call make-pbuilder-bsp-package-target,imx-atf,imx-atf))
+    16	$(eval $(call make-pbuilder-bsp-package-target,imx-firmware,imx-firmware))
+    17	$(eval $(call make-pbuilder-bsp-package-target,imx-mkimage,tools/imx-mkimage))
+    18	$(eval $(call make-pbuilder-bsp-package-target,uboot-imx,uboot-imx,imx-atf imx-firmware imx-mkimage))
+    19	$(eval $(call make-pbuilder-bsp-package-target,wayland-protocols-imx,wayland-protocols-imx))
+    20	$(eval $(call make-pbuilder-bsp-package-target,weston-imx,weston-imx,wayland-protocols-imx))
+    21	$(eval $(call make-pbuilder-bsp-package-target,linux-imx,linux-imx))
+    22	$(eval $(call make-pbuilder-bsp-package-target,imx-gpu-viv,imx-gpu-viv,linux-imx,,binary))
+    23	$(eval $(call make-pbuilder-bsp-package-target,libdrm-imx,libdrm-imx))
+    24	$(eval $(call make-pbuilder-bsp-package-target,imx-vpu-hantro,imx-vpu-hantro,linux-imx,,binary))
+    25	$(eval $(call make-pbuilder-bsp-package-target,imx-vpuwrap,imx-vpuwrap,imx-vpu-hantro,,binary))
+    26	$(eval $(call make-pbuilder-bsp-package-target,imx-gstreamer,imx-gstreamer))
+    27	$(eval $(call make-pbuilder-bsp-package-target,imx-gst-plugins-base,imx-gst-plugins-base,imx-gstreamer linux-imx,,,native))
+    28	$(eval $(call make-pbuilder-bsp-package-target,gst-plugins-ugly1.0,packages/gst-plugins-ugly1.0,imx-gst-plugins-base))
+    29	$(eval $(call make-pbuilder-bsp-package-target,imx-gst-plugins-good,imx-gst-plugins-good,imx-gst-plugins-base libdrm-imx))
+    30	$(eval $(call make-pbuilder-bsp-package-target,imx-gst-plugins-bad,imx-gst-plugins-bad,\
+    31		libdrm-imx imx-gst-plugins-base linux-imx wayland-protocols-imx))
+    32	$(eval $(call make-pbuilder-bsp-package-target,imx-gst1.0-plugin,imx-gst1.0-plugin,\
+    33		imx-vpuwrap imx-gst-plugins-bad))
+    34	$(eval $(call make-pbuilder-bsp-package-target,imx-board-tools,packages/imx-board-tools))
+    35	$(eval $(call make-pbuilder-bsp-package-target,imx-board-audio,packages/imx-board-audio))
+    36	$(eval $(call make-pbuilder-bsp-package-target,imx-board-wlan,imx-board-wlan,linux-imx))
+    37	$(eval $(call make-pbuilder-bsp-package-target,bluez-imx,bluez-imx))
+    38	$(eval $(call make-pbuilder-bsp-package-target,meta-enterprise,packages/meta-enterprise))
+</pre>
+
+h3. Archive all the build result ("packages.tgz")
+
+
+----
+<pre>
+ 58053	/rootdir/build/update_packages.sh
+ 58054	+ flock -e 200
+ 58055	+ cd /rootdir/out/target/product/imx8m_phanbell/packages
+ 58056	+ apt-ftparchive -o APT::FTPArchive::SHA512=false packages bsp
+ 58057	+ cd /rootdir/out/target/product/imx8m_phanbell/packages
+ 58058	+ apt-ftparchive -o APT::FTPArchive::SHA512=false packages core
+ 58059	tar -C /rootdir/out/target/product/imx8m_phanbell --overwrite -czf /rootdir/cache/packages.tgz packages
+</pre>
+----
+
+The make rule is defined in the following point.
+
+* packages.mk
+
+<pre>
+   153	ALL_PACKAGE_TARGETS := $(PBUILDER_TARGETS)
+   154	packages-tarball: $(ROOTDIR)/cache/packages.tgz
+   155	$(ROOTDIR)/cache/packages.tgz: $(ALL_PACKAGE_TARGETS) | out-dirs
+   156		$(ROOTDIR)/build/update_packages.sh
+   157		tar -C $(PRODUCT_OUT) --overwrite -czf $@ packages
+</pre>
+
+h3. Format a boot partition ("boot_arm64.img")
+
+
+----
+<pre>
+ 58060	fallocate -l 128M /rootdir/out/target/product/imx8m_phanbell/boot_arm64.img
+ 58061	mkfs.ext2 -F /rootdir/out/target/product/imx8m_phanbell/boot_arm64.img
+ 58062	mke2fs 1.44.5 (15-Dec-2018)
+ 58063	Discarding device blocks:   1024/131072             done                            
+ 58064	Creating filesystem with 131072 1k blocks and 32768 inodes
+ 58065	Filesystem UUID: 97de9770-d1ee-4a31-9439-290a6252f81f
+ 58066	Superblock backups stored on blocks: 
+ 58067		8193, 24577, 40961, 57345, 73729
+ 58068	
+ 58069	Allocating group tables:  0/16     done                            
+ 58070	Writing inode tables:  0/16     done                            
+ 58071	Writing superblocks and filesystem accounting information:  0/16     done
+ 58072	
+</pre>
+----
+
+The make rule is defined in the following point.
+
+* boot.mk
+
+<pre>
+    23	$(PRODUCT_OUT)/boot_$(USERSPACE_ARCH).img: | out-dirs
+    24		$(LOG) boot fallocate
+    25		fallocate -l $(BOOT_SIZE_MB)M $@
+    26		mkfs.ext2 -F $@
+    27		$(LOG) boot finished
+</pre>
+
+h3. Install the built .deb files to the boot ("boot_arm64.img") and rootfs ("rootfs_arm64.patched.img")
+
+The locally built .deb files (included in "packages.tgz") are installed to the plain rootfs ("rootfs_arm64.raw.img").
+Mount the image file using "mount" command with "loop" option.
+In order to perform chroot, qemu is copied to the mounted directory.
+
+----
+<pre>
+ 58073	mkdir -p /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs
+ 58074	cp /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.raw.img /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.patched.img.wip
+ 58075	mkdir -p /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs
+ <snip>
+ 58082	sudo mount -o loop /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.patched.img.wip /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs
+ 58083	sudo mkdir -p /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/boot
+ 58084	sudo mount -o loop /rootdir/out/target/product/imx8m_phanbell/boot_arm64.img /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/boot
+ 58085	sudo mkdir -p /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/dev
+ 58086	sudo mount -o bind /dev /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/dev
+ 58087	sudo cp /usr/bin/qemu-aarch64-static /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/usr/bin
+ 58088	sudo cp /rootdir/board/fstab.emmc /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/etc/fstab
+ 58089	echo 'nameserver 8.8.8.8' | sudo tee /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/etc/resolv.conf
+ 58090	nameserver 8.8.8.8
+ 58091	echo 'deb [trusted=yes] file:///opt/aiy/packages ./' | sudo tee /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/etc/apt/sources.list.d/local.list
+ 58092	deb [trusted=yes] file:///opt/aiy/packages ./
+ 58093	sudo mkdir -p /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/opt/aiy
+ 58094	sudo tar -xvf /rootdir/cache/packages.tgz -C /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/opt/aiy/
+ <snip>
+ 58314	echo 'deb https://deb.debian.org/debian-security/ buster/updates main' |sudo tee /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/etc/apt/sources.list.d/security.list
+ 58315	deb https://deb.debian.org/debian-security/ buster/updates main
+ 58316	echo 'deb-src https://deb.debian.org/debian-security/ buster/updates main' |sudo tee -a /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/etc/apt/sources.list.d/security.list
+ 58317	deb-src https://deb.debian.org/debian-security/ buster/updates main
+ 58318	sudo cp /rootdir/build/99network-settings /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/etc/apt/apt.conf.d/
+ 58319	#TODO(jtgans): This must go away.
+ 58320	echo -e 'Acquire::Check-Valid-Until "false";\nAcquire::AllowInsecureRepositories "true";\nAcquire::AllowDowngradeToInsecureRepositories "true";' | sudo tee /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/etc/apt/apt.conf.d/99-enable-unsecure-repos
+ 58321	Acquire::Check-Valid-Until "false";
+ 58322	Acquire::AllowInsecureRepositories "true";
+ 58323	Acquire::AllowDowngradeToInsecureRepositories "true";
+ 58324	sudo chroot /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs bash -c 'apt-get update'
+ <snip>
+ 58386	sudo chroot /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs bash -c 'apt-get install -y --allow-unauthenticated mendel-keyring'
+ <snip>
+ 58404	sudo chroot /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs bash -c 'apt-get update'
+ <snip>
+ 58442	sudo chroot /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs bash -c 'apt-get install --allow-downgrades --no-install-recommends -y enterprise-core enterprise-gui'
+ <snip>
+ 59264	sudo chroot /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs bash -c 'apt-get upgrade -y'
+ <snip>
+ 59282	make -f /rootdir/build/rootfs.mk adjustments
+ <snip>
+ 59305	sudo rm -f /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/usr/bin/qemu-aarch64-static
+ 59306	sudo umount /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/dev
+ 59307	sudo umount /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs/boot
+ 59308	sudo umount /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs
+ 59309	sudo rmdir /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs
+ 59310	sudo sync /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.patched.img.wip
+ 59311	sudo chown root /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.patched.img.wip
+ 59312	mv /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.patched.img.wip /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.patched.img
+</pre>
+----
+
+The make rule is defined in the following point.
+
+* rootfs.mk
+
+<pre>
+   119	$(ROOTFS_PATCHED_IMG): $(ROOTFS_PATCHED_DEPS) \
+   120	                       | $(PRODUCT_OUT)/boot_$(USERSPACE_ARCH).img \
+   121	                         /usr/bin/qemu-$(QEMU_ARCH)-static \
+   122	                         $(ROOTFS_DIR)
+   123		$(LOG) rootfs patch
+   124		cp $(ROOTFS_RAW_IMG) $(ROOTFS_PATCHED_IMG).wip
+   125		mkdir -p $(ROOTFS_DIR)
+   126		-sudo umount $(ROOTFS_DIR)/boot
+   127		-sudo umount $(ROOTFS_DIR)
+   128		sudo mount -o loop $(ROOTFS_PATCHED_IMG).wip $(ROOTFS_DIR)
+   129		-sudo mkdir -p $(ROOTFS_DIR)/boot
+   130		sudo mount -o loop $(PRODUCT_OUT)/boot_$(USERSPACE_ARCH).img $(ROOTFS_DIR)/boot
+   131		-sudo mkdir -p $(ROOTFS_DIR)/dev
+   132		sudo mount -o bind /dev $(ROOTFS_DIR)/dev
+   133		sudo cp /usr/bin/qemu-$(QEMU_ARCH)-static $(ROOTFS_DIR)/usr/bin
+   134	
+   135		sudo cp $(ROOTDIR)/board/fstab.emmc $(ROOTFS_DIR)/etc/fstab
+   136	
+   137		$(LOG) rootfs patch keyring
+   138		echo 'nameserver 8.8.8.8' | sudo tee $(ROOTFS_DIR)/etc/resolv.conf
+   139	
+   140	ifeq ($(FETCH_PACKAGES),false)
+   141		echo 'deb [trusted=yes] file:///opt/aiy/packages ./' | sudo tee $(ROOTFS_DIR)/etc/apt/sources.list.d/local.list
+   142		sudo mkdir -p $(ROOTFS_DIR)/opt/aiy
+   143		sudo tar -xvf $(ROOTDIR)/cache/packages.tgz -C $(ROOTFS_DIR)/opt/aiy/
+   144	endif
+   145	
+   146		echo 'deb https://deb.debian.org/debian-security/ buster/updates main' |sudo tee $(ROOTFS_DIR)/etc/apt/sources.list.d/security.list
+   147		echo 'deb-src https://deb.debian.org/debian-security/ buster/updates main' |sudo tee -a $(ROOTFS_DIR)/etc/apt/sources.list.d/security.list
+   148		sudo cp $(ROOTDIR)/build/99network-settings $(ROOTFS_DIR)/etc/apt/apt.conf.d/
+   149	
+   150		#TODO(jtgans): This must go away.
+   151		echo -e 'Acquire::Check-Valid-Until "false";\nAcquire::AllowInsecureRepositories "true";\nAcquire::AllowDowngradeToInsecureRepositories "true";' | sudo tee $(ROOTFS_DIR)/etc/apt/apt.conf.d/99-enable-unsecure-repos
+   152	
+   153		sudo chroot $(ROOTFS_DIR) bash -c 'apt-get update'
+   154		sudo chroot $(ROOTFS_DIR) bash -c 'apt-get install -y --allow-unauthenticated mendel-keyring'
+   155		sudo chroot $(ROOTFS_DIR) bash -c 'apt-get update'
+   156		$(LOG) rootfs patch keyring finished
+   157	
+   158		$(LOG) rootfs patch bsp
+   159		sudo chroot $(ROOTFS_DIR) bash -c 'apt-get install --allow-downgrades --no-install-recommends -y $(PRE_INSTALL_PACKAGES)'
+   160		sudo chroot $(ROOTFS_DIR) bash -c 'apt-get upgrade -y'
+   161		$(LOG) rootfs patch bsp finished
+   162	
+   163	# TODO(jtgans): Remove these when rapture is updated. Until then keeping the local repo
+   164	# is the only way of installing locally built packages on device.
+   165	# ifeq ($(FETCH_PACKAGES),false)
+   166	# 	sudo rm -f $(ROOTFS_DIR)/etc/apt/sources.list.d/local.list
+   167	# 	sudo rm -rf $(ROOTFS_DIR)/opt/aiy
+   168	# endif
+   169	
+   170		+make -f $(ROOTDIR)/build/rootfs.mk adjustments
+   171	
+   172		sudo rm -f $(ROOTFS_DIR)/usr/bin/qemu-$(QEMU_ARCH)-static
+   173		sudo umount $(ROOTFS_DIR)/dev
+   174		sudo umount $(ROOTFS_DIR)/boot
+   175		sudo umount $(ROOTFS_DIR)
+   176		sudo rmdir $(ROOTFS_DIR)
+   177		sudo sync $(ROOTFS_PATCHED_IMG).wip
+   178		sudo chown ${USER} $(ROOTFS_PATCHED_IMG).wip
+   179		mv $(ROOTFS_PATCHED_IMG).wip $(ROOTFS_PATCHED_IMG)
+   180		$(LOG) rootfs patch finished
+</pre>
+
+
+h3. Create the packed rootfs ("rootfs_arm64.img")
+
+Apply the "img2simg" tool to reduce the file size.
+
+----
+<pre>
+ 59313	/rootdir/out/host/linux-x86/bin/img2simg /rootdir/out/target/product/imx8m_phanbell/obj/ROOTFS/rootfs_arm64.patched.img /rootdir/out/target/product/imx8m_phanbell/rootfs_arm64.img
+ </pre>
+----
+
+The make rule is defined in the following point.
+
+* rootfs.mk
+
+<pre>
+   182	$(ROOTFS_IMG): $(HOST_OUT)/bin/img2simg $(ROOTFS_PATCHED_IMG)
+   183		$(LOG) rootfs img2simg
+   184		$(HOST_OUT)/bin/img2simg $(ROOTFS_PATCHED_IMG) $(ROOTFS_IMG)
+   185		$(LOG) rootfs img2simg finished
+</pre>
+
+h3. Extract uboot ("u-boot.imx") from .deb file
+
+
+----
+<pre>
+ 59314	find /rootdir/out/target/product/imx8m_phanbell/packages -name 'uboot-imx*arm64*.deb' | xargs \
+ 59315	dpkg --fsys-tarfile | \
+ 59316	tar --strip-components 2 -C /rootdir/out/target/product/imx8m_phanbell -xf - ./boot/u-boot.imx
+</pre>
+----
+
+The make rule is defined in the following point.
+
+* bootloader.mk
+
+<pre>
+    24	$(PRODUCT_OUT)/u-boot.imx: uboot-imx | out-dirs
+    25		$(LOG) u-boot extract
+    26		find $(PRODUCT_OUT)/packages -name 'uboot-imx*$(USERSPACE_ARCH)*.deb' | xargs \
+    27		dpkg --fsys-tarfile | \
+    28		tar --strip-components 2 -C $(PRODUCT_OUT) -xf - ./boot/u-boot.imx
+    29		$(LOG) u-boot finished
+</pre>
+
+h3. Create the partition tables
+
+
+----
+<pre>
+ 59317	mkdir -p /rootdir/out/target/product/imx8m_phanbell
+ 59318	/rootdir/tools/bpt/bpttool make_table --disk_size 7818182656 --input /rootdir/board/partition-table.json --output_json /rootdir/out/target/product/imx8m_phanbell/partition-table-8gb.json
+ 59319	mkdir -p /rootdir/out/target/product/imx8m_phanbell
+ 59320	/rootdir/tools/bpt/bpttool make_table --disk_size 7818182656 --input /rootdir/board/partition-table.json --output_gpt /rootdir/out/target/product/imx8m_phanbell/partition-table-8gb.img
+ 59321	mkdir -p /rootdir/out/target/product/imx8m_phanbell
+ 59322	/rootdir/tools/bpt/bpttool make_table --disk_size 15634268160 --input /rootdir/board/partition-table.json --output_json /rootdir/out/target/product/imx8m_phanbell/partition-table-16gb.json
+ 59323	mkdir -p /rootdir/out/target/product/imx8m_phanbell
+ 59324	/rootdir/tools/bpt/bpttool make_table --disk_size 15634268160 --input /rootdir/board/partition-table.json --output_gpt /rootdir/out/target/product/imx8m_phanbell/partition-table-16gb.img
+ 59325	mkdir -p /rootdir/out/target/product/imx8m_phanbell
+ 59326	/rootdir/tools/bpt/bpttool make_table --disk_size 62537072640 --input /rootdir/board/partition-table.json --output_json /rootdir/out/target/product/imx8m_phanbell/partition-table-64gb.json
+ 59327	mkdir -p /rootdir/out/target/product/imx8m_phanbell
+ 59328	/rootdir/tools/bpt/bpttool make_table --disk_size 62537072640 --input /rootdir/board/partition-table.json --output_gpt /rootdir/out/target/product/imx8m_phanbell/partition-table-64gb.img
+</pre>
+----
+
+The make rule is defined in the following point.
+
+* partition-table.mk
+
+<pre>
+    57	$(PRODUCT_OUT)/partition-table-%.json: $(SOURCE_JSON)
+    58		mkdir -p $(@D)
+    59		$(BPTTOOL) make_table --disk_size $(MMC_SIZE) --input $< --output_json $@
+    60	
+    61	$(PRODUCT_OUT)/partition-table-%.img: $(SOURCE_JSON)
+    62		mkdir -p $(@D)
+    63		$(BPTTOOL) make_table --disk_size $(MMC_SIZE) --input $< --output_gpt $@
+</pre>
+
+
