@@ -92,7 +92,9 @@ recovery     - generate a flashable recovery image
 ** pbuilder file
 
 * pbuilderrc
-** pbuilder file
+** pbuilder file (--configfile $(ROOTDIR)/build/pbuilderrc)
+*** The downloaded pre-built .deb files, used for building the edge tpu's .deb files, are stored in "cache/pbuilder-apt/" directory.
+*** The "cache/pbuilder-apt" setting is specified in this pbuilder file.
 
 * permissions.txt
 ** rootfs permission settings
