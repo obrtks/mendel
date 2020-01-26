@@ -1,0 +1,128 @@
+Mon Nov 25 15:25:29 13:54:28 UTC	build	started	m
+Mon Nov 25 13:56:37 UTC 2019	sub-build	started	m all
+Mon Nov 25 13:56:38 UTC 2019	rootfs	raw-build	
+Mon Nov 25 13:56:38 UTC 2019	rootfs	raw-build	multistrap
+Mon Nov 25 13:58:59 UTC 2019	rootfs	raw-build	multistrap finished
+Mon Nov 25 13:58:59 UTC 2019	rootfs	raw-build	dpkg-configure
+Mon Nov 25 14:03:45 UTC 2019	rootfs	raw-build	dpkg-configure finished
+Mon Nov 25 14:04:05 UTC 2019	rootfs	raw-build	finished
+Mon Nov 25 14:07:50 UTC 2019	mendel-minimal	pbuilder	
+Mon Nov 25 14:07:50 UTC 2019	mendel-minimal	pbuilder	pdebuild
+Mon Nov 25 14:08:19 UTC 2019	mendel-minimal	finished	
+Mon Nov 25 14:08:19 UTC 2019	base-files	pbuilder	
+Mon Nov 25 14:08:19 UTC 2019	base-files	pbuilder	pdebuild
+Mon Nov 25 14:08:42 UTC 2019	base-files	finished	
+Mon Nov 25 14:13:35 UTC 2019	edgetpuvision	pbuilder	
+Mon Nov 25 14:13:35 UTC 2019	edgetpuvision	pbuilder	pdebuild
+Mon Nov 25 14:15:29 UTC 2019	edgetpuvision	finished	
+Mon Nov 25 14:15:29 UTC 2019	edgetpudemo	pbuilder	
+Mon Nov 25 14:15:31 UTC 2019	edgetpudemo	pbuilder	pdebuild
+Mon Nov 25 14:16:12 UTC 2019	edgetpudemo	finished	
+Mon Nov 25 14:16:12 UTC 2019	mdt-services	pbuilder	
+Mon Nov 25 14:16:12 UTC 2019	mdt-services	pbuilder	pdebuild
+Mon Nov 25 14:16:38 UTC 2019	mdt-services	finished	
+Mon Nov 25 14:16:38 UTC 2019	mendel-distro-info-data	pbuilder	
+Mon Nov 25 14:16:38 UTC 2019	mendel-distro-info-data	pbuilder	pdebuild
+Mon Nov 25 14:17:00 UTC 2019	mendel-distro-info-data	finished	
+Mon Nov 25 14:17:00 UTC 2019	mendel-keyring	pbuilder	
+Mon Nov 25 14:17:01 UTC 2019	mendel-keyring	pbuilder	pdebuild
+Mon Nov 25 14:17:26 UTC 2019	mendel-keyring	finished	
+Mon Nov 25 14:17:26 UTC 2019	runonce	pbuilder	
+Mon Nov 25 14:17:26 UTC 2019	runonce	pbuilder	pdebuild
+Mon Nov 25 14:17:49 UTC 2019	runonce	finished	
+Mon Nov 25 14:17:49 UTC 2019	usb-gadget	pbuilder	
+Mon Nov 25 14:17:49 UTC 2019	usb-gadget	pbuilder	pdebuild
+Mon Nov 25 14:18:14 UTC 2019	usb-gadget	finished	
+Mon Nov 25 14:18:14 UTC 2019	vitalsd	pbuilder	
+Mon Nov 25 14:18:14 UTC 2019	vitalsd	pbuilder	pdebuild
+Mon Nov 25 14:19:52 UTC 2019	vitalsd	finished	
+Mon Nov 25 14:19:52 UTC 2019	meta-mendel	pbuilder	
+Mon Nov 25 14:19:52 UTC 2019	meta-mendel	pbuilder	pdebuild
+Mon Nov 25 14:20:30 UTC 2019	meta-mendel	finished	
+Mon Nov 25 14:20:30 UTC 2019	imx-atf	pbuilder	
+Mon Nov 25 14:20:31 UTC 2019	imx-atf	pbuilder	pdebuild
+Mon Nov 25 14:21:02 UTC 2019	imx-atf	finished	
+Mon Nov 25 14:21:02 UTC 2019	imx-firmware	pbuilder	
+Mon Nov 25 14:21:03 UTC 2019	imx-firmware	pbuilder	pdebuild
+Mon Nov 25 14:21:27 UTC 2019	imx-firmware	finished	
+Mon Nov 25 14:21:27 UTC 2019	imx-mkimage	pbuilder	
+Mon Nov 25 14:21:27 UTC 2019	imx-mkimage	pbuilder	pdebuild
+Mon Nov 25 14:21:50 UTC 2019	imx-mkimage	finished	
+Mon Nov 25 14:21:50 UTC 2019	uboot-imx	pbuilder	
+Mon Nov 25 14:21:55 UTC 2019	uboot-imx	pbuilder	pdebuild
+Mon Nov 25 14:23:41 UTC 2019	uboot-imx	finished	
+Mon Nov 25 14:23:41 UTC 2019	wayland-protocols-imx	pbuilder	
+Mon Nov 25 14:23:41 UTC 2019	wayland-protocols-imx	pbuilder	pdebuild
+Mon Nov 25 14:24:09 UTC 2019	wayland-protocols-imx	finished	
+Mon Nov 25 14:24:09 UTC 2019	weston-imx	pbuilder	
+Mon Nov 25 14:24:10 UTC 2019	weston-imx	pbuilder	pdebuild
+Mon Nov 25 14:25:58 UTC 2019	weston-imx	finished	
+Mon Nov 25 14:25:59 UTC 2019	linux-imx	pbuilder	
+Mon Nov 25 14:26:30 UTC 2019	linux-imx	pbuilder	pdebuild
+Mon Nov 25 14:38:09 UTC 2019	linux-imx	finished	
+Mon Nov 25 14:38:09 UTC 2019	libdrm-imx	pbuilder	
+Mon Nov 25 14:38:10 UTC 2019	libdrm-imx	pbuilder	pdebuild
+Mon Nov 25 14:38:46 UTC 2019	libdrm-imx	finished	
+Mon Nov 25 14:38:46 UTC 2019	imx-gstreamer	pbuilder	
+Mon Nov 25 14:38:47 UTC 2019	imx-gstreamer	pbuilder	pdebuild
+Mon Nov 25 14:40:38 UTC 2019	imx-gstreamer	finished	
+Mon Nov 25 14:40:38 UTC 2019	imx-gst-plugins-base	pbuilder	
+Mon Nov 25 14:40:40 UTC 2019	imx-gst-plugins-base	pbuilder	pdebuild
+Mon Nov 25 15:09:29 UTC 2019	imx-gst-plugins-base	finished	
+Mon Nov 25 15:09:29 UTC 2019	imx-gst-plugins-good	pbuilder	
+Mon Nov 25 15:09:31 UTC 2019	imx-gst-plugins-good	pbuilder	pdebuild
+Mon Nov 25 15:12:19 UTC 2019	imx-gst-plugins-good	finished	
+Mon Nov 25 15:12:19 UTC 2019	imx-gst-plugins-bad	pbuilder	
+Mon Nov 25 15:12:22 UTC 2019	imx-gst-plugins-bad	pbuilder	pdebuild
+Mon Nov 25 15:16:34 UTC 2019	imx-gst-plugins-bad	finished	
+Mon Nov 25 15:16:35 UTC 2019	imx-gst1.0-plugin	pbuilder	
+Mon Nov 25 15:16:36 UTC 2019	imx-gst1.0-plugin	pbuilder	pdebuild
+Mon Nov 25 15:17:38 UTC 2019	imx-gst1.0-plugin	finished	
+Mon Nov 25 15:17:38 UTC 2019	imx-board-tools	pbuilder	
+Mon Nov 25 15:17:39 UTC 2019	imx-board-tools	pbuilder	pdebuild
+Mon Nov 25 15:18:03 UTC 2019	imx-board-tools	finished	
+Mon Nov 25 15:18:03 UTC 2019	imx-board-audio	pbuilder	
+Mon Nov 25 15:18:05 UTC 2019	imx-board-audio	pbuilder	pdebuild
+Mon Nov 25 15:18:31 UTC 2019	imx-board-audio	finished	
+Mon Nov 25 15:18:31 UTC 2019	imx-board-wlan	pbuilder	
+Mon Nov 25 15:18:33 UTC 2019	imx-board-wlan	pbuilder	pdebuild
+Mon Nov 25 15:19:39 UTC 2019	imx-board-wlan	finished	
+Mon Nov 25 15:19:39 UTC 2019	bluez-imx	pbuilder	
+Mon Nov 25 15:19:41 UTC 2019	bluez-imx	pbuilder	pdebuild
+Mon Nov 25 15:21:17 UTC 2019	bluez-imx	finished	
+Mon Nov 25 15:21:17 UTC 2019	meta-enterprise	pbuilder	
+Mon Nov 25 15:21:18 UTC 2019	meta-enterprise	pbuilder	pdebuild
+Mon Nov 25 15:21:45 UTC 2019	meta-enterprise	finished	
+Mon Nov 25 15:21:58 UTC 2019	boot	fallocate	
+Mon Nov 25 15:21:58 UTC 2019	boot	finished	
+Mon Nov 25 15:21:58 UTC 2019	rootfs	patch	
+Mon Nov 25 15:22:05 UTC 2019	rootfs	patch	keyring
+Mon Nov 25 15:23:22 UTC 2019	rootfs	patch	keyring finished
+Mon Nov 25 15:23:22 UTC 2019	rootfs	patch	bsp
+Mon Nov 25 15:25:14 UTC 2019	rootfs	patch	bsp finished
+Mon Nov 25 15:25:14 UTC 2019	rootfs	adjustments	
+Mon Nov 25 15:25:15 UTC 2019	rootfs	patch	finished
+Mon Nov 25 15:25:15 UTC 2019	rootfs	img2simg	
+Mon Nov 25 15:25:29 UTC 2019	rootfs	img2simg	finished
+Mon Nov 25 15:25:29 UTC 2019	rootfs	finished	
+Mon Nov 25 15:25:29 UTC 2019	u-boot	extract	
+Mon Nov 25 15:25:29 UTC 2019	u-boot	finished	
+Mon Nov 25 15:25:29 UTC 2019	sub-build	finished	
+Mon Nov 25 15:25:29 15:25:33 UTC	build	finished	
+Mon Nov 25 15:25:29 15:25:33 UTC	build	started	m sdcard
+Mon Nov 25 15:25:29 15:25:34 UTC	u-boot	extract	
+Mon Nov 25 15:25:29 15:25:34 UTC	u-boot	finished	
+Mon Nov 25 15:25:29 15:25:34 UTC	rootfs	raw-build	
+Mon Nov 25 15:25:29 15:25:34 UTC	rootfs	raw-build	multistrap
+Mon Nov 25 15:25:29 15:27:19 UTC	rootfs	raw-build	multistrap finished
+Mon Nov 25 15:25:29 15:27:19 UTC	rootfs	raw-build	dpkg-configure
+Mon Nov 25 15:25:29 15:30:55 UTC	rootfs	raw-build	dpkg-configure finished
+Mon Nov 25 15:25:29 15:31:13 UTC	rootfs	raw-build	finished
+Mon Nov 25 15:25:29 15:31:15 UTC	rootfs	patch	
+Mon Nov 25 15:25:29 15:31:19 UTC	rootfs	patch	keyring
+Mon Nov 25 15:25:29 15:31:57 UTC	rootfs	patch	keyring finished
+Mon Nov 25 15:25:29 15:31:57 UTC	rootfs	patch	bsp
+Mon Nov 25 15:25:29 15:33:37 UTC	rootfs	patch	bsp finished
+Mon Nov 25 15:25:29 15:33:37 UTC	rootfs	adjustments	
+Mon Nov 25 15:25:29 15:33:38 UTC	rootfs	patch	finished
+Mon Nov 25 15:25:29 15:33:50 UTC	build	finished	
